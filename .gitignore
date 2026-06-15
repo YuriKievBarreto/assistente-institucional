@@ -119,3 +119,6 @@ faiss_index/
 # Arquivos grandes
 *.pdf
 *.docx
+
+__pycache__/
+*.py[cod]
