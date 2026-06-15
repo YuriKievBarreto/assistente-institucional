@@ -38,9 +38,9 @@ URLS_PESQUISA = {
 
 
 WEB_PAGE_HUBS = {
-        #"institucional": "https://www.ifpb.edu.br/campus/cajazeiras/institucional",
+        "institucional": "https://www.ifpb.edu.br/campus/cajazeiras/institucional",
         #"assistencia-estudantil":"https://www.ifpb.edu.br/campus/cajazeiras/assistencia-estudantil",
-        "ensino": "https://www.ifpb.edu.br/campus/cajazeiras/ensino",
+        #"ensino": "https://www.ifpb.edu.br/campus/cajazeiras/ensino",
         #"pesquisa": "https://www.ifpb.edu.br/campus/cajazeiras/pesquisa",
         #"extensao": "https://www.ifpb.edu.br/campus/cajazeiras/extensao",
 

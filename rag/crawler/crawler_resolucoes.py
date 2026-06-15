@@ -148,7 +148,7 @@ class IFPBCrawlerUnificado:
 
         return todas
 
-    def baixar_pdf(self, resolucao, output_base="pdfs_ifpb_completos"):
+    def baixar_pdf(self, resolucao, output_base="pdfs_ifpb_completos/consuper/resolucoes"):
         ano = resolucao["ano"]
         categoria = resolucao["categoria"]
         pasta = os.path.join(output_base, str(ano), categoria)

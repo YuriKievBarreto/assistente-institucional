@@ -1,3 +1,121 @@
 .venv
 .env
 pdfs_ifpb_completos/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+*.env
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Linting
+.ruff_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation builds
+docs/_build/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets
+secrets.json
+credentials.json
+
+# Model files (opcional para ML/RAG)
+models/
+checkpoints/
+
+# LangChain / Chroma / Vector DB (ajuste conforme necessário)
+chroma_db/
+vectorstore/
+faiss_index/
+storage/
+
+# Cache
+.cache/
+
+# Dados brutos coletados pelos crawlers
+data/raw/
+
+# Dados processados para ingestão
+data/processed/
+
+# Bancos vetoriais
+vector_db/
+chroma_db/
+faiss_index/
+
+# Arquivos grandes
+*.pdf
+*.docx
