@@ -62,14 +62,15 @@ DIRETORIO_WEB_PAGES = "pdfs_ifpb_completos/paginas_web"
 
 
 ## Páginas Web
-baixar_da_web(WEB_PAGE_HUBS, DIRETORIO_WEB_PAGES)
+#baixar_da_web(WEB_PAGE_HUBS, DIRETORIO_WEB_PAGES)
 
 
 ## Editais
-"""
-baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
-baixar_editais(URLS_DIRECAO_GERAL, "pdfs_ifpb_completos/editais/direcao_geral")
 baixar_editais(URLS_ENSINO, "pdfs_ifpb_completos/editais/ensino")
+baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
+"""
+baixar_editais(URLS_DIRECAO_GERAL, "pdfs_ifpb_completos/editais/direcao_geral")
+
 baixar_editais(URLS_EXTENSAO, "pdfs_ifpb_completos/editais/extensao")
 baixar_editais(URLS_INOVACAO, "pdfs_ifpb_completos/editais/invacao")
 baixar_editais(URLS_PESQUISA, "pdfs_ifpb_completos/editais/pesquisa")

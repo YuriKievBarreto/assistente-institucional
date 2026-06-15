@@ -13,10 +13,18 @@ HEADERS = {
 }
 
 def sanitize_filename(name):
-    """Remove caracteres inválidos, quebras de linha e TABs."""
+    """Remove caracteres inválidos, limita o tamanho e substitui espaços por hifens."""
     name = name.replace('\n', ' ').replace('\r', '').replace('\t', ' ')
     name = re.sub(r'[\\/*?:"<>|]', "", name)
-    name = re.sub(r'\s+', ' ', name).strip()
+    
+    # Substitui sequências de espaços em branco por um único hífen
+    name = re.sub(r'\s+', '-', name).strip('-')
+    
+    # Limita o tamanho para evitar o erro de "Path Too Long" (260 chars) do Windows
+    if len(name) > 60:
+        # Pega os primeiros 50 caracteres e adiciona um hash para manter a unicidade
+        name = name[:50].strip('-') + "-" + hashlib.md5(name.encode('utf-8')).hexdigest()[:5]
+        
     return name
 
 def normalize_url(url):
@@ -34,7 +42,7 @@ def extrair_nome_legivel_do_link(a_tag, url_absoluta):
         
     partes = [p for p in unquote(url_absoluta).split('/') if p]
     if not partes:
-        return "Documento_Sem_Nome"
+        return "Documento-Sem-Nome"
         
     if partes[-1].lower() == 'file' and len(partes) >= 3 and '@@download' in partes[-2]:
         return partes[-3]
@@ -54,12 +62,12 @@ def salvar_link_como_markdown(url_link, pasta_destino, prefixo_edital, nome_docu
     try:
         url_link_norm = normalize_url(url_link)
         hash_url = gerar_hash_unico(url_link_norm)
-        nome_doc_seguro = sanitize_filename(nome_documento) if nome_documento else "Link_Externo"
+        nome_doc_seguro = sanitize_filename(nome_documento) if nome_documento else "Link-Externo"
         
         if prefixo_edital:
-            nome_base_arquivo = f"{prefixo_edital}___{nome_doc_seguro}_{hash_url}"
+            nome_base_arquivo = f"{prefixo_edital}---{nome_doc_seguro}-{hash_url}"
         else:
-            nome_base_arquivo = f"{nome_doc_seguro}_{hash_url}"
+            nome_base_arquivo = f"{nome_doc_seguro}-{hash_url}"
             
         caminho_salvar = os.path.join(pasta_destino, f"{nome_base_arquivo}.md")
         caminho_json = os.path.join(pasta_destino, f"{nome_base_arquivo}.json")
@@ -125,9 +133,9 @@ def tentar_baixar_arquivo(url_arquivo, pasta_destino, prefixo_edital, nome_docum
         if not ext: ext = '.pdf'
 
         if prefixo_edital:
-            nome_base_arquivo = f"{prefixo_edital}___{nome_base}_{hash_url}"
+            nome_base_arquivo = f"{prefixo_edital}---{nome_base}-{hash_url}"
         else:
-            nome_base_arquivo = f"{nome_base}_{hash_url}"
+            nome_base_arquivo = f"{nome_base}-{hash_url}"
             
         caminho_salvar = os.path.join(pasta_destino, f"{nome_base_arquivo}{ext}")
         caminho_json = os.path.join(pasta_destino, f"{nome_base_arquivo}.json")
@@ -171,7 +179,7 @@ def vasculhar_pagina_recursivamente(url_pagina, pasta_pai, visited_urls, ano, is
     
     pasta_atual = pasta_pai
     titulo_seguro = ""
-    mapa_metadados_visuais = {} # Dicionário para guardar dados capturados visualmente do HTML
+    mapa_metadados_visuais = {} 
     
     try:
         resposta = requests.get(url_pagina, headers=HEADERS)
@@ -181,10 +189,15 @@ def vasculhar_pagina_recursivamente(url_pagina, pasta_pai, visited_urls, ano, is
             h1 = soup.find('h1', class_='documentFirstHeading')
             titulo = h1.text.strip() if h1 else unquote(url_pagina.split('/')[-1])
             titulo_seguro = sanitize_filename(titulo)
-            pasta_atual = os.path.join(pasta_pai, titulo_seguro)
+            
+            # Previne a criação de pastas duplicadas com nomes idênticos no meio do caminho
+            if titulo_seguro in pasta_pai:
+                pasta_atual = pasta_pai
+            else:
+                pasta_atual = os.path.join(pasta_pai, titulo_seguro)
+                
             os.makedirs(pasta_atual, exist_ok=True)
             
-        # [NOVO] Extrai antecipadamente os metadados visuais da tabela (se existir na página atual)
         if soup:
             tabela_previa = soup.find('table', class_='edital-items-table')
             if tabela_previa:
@@ -210,7 +223,7 @@ def vasculhar_pagina_recursivamente(url_pagina, pasta_pai, visited_urls, ano, is
     url_com_barra = url_pagina if url_pagina.endswith('/') else url_pagina + '/'
 
     # =================================================================
-    # FASE 1: RASPAGEM VIA API (Pega itens e pastas com metadados corrigidos)
+    # FASE 1: RASPAGEM VIA API
     # =================================================================
     if "https://www.ifpb.edu.br" in url_pagina:
         api_url = url_pagina.replace("https://www.ifpb.edu.br", "https://www.ifpb.edu.br/++api++")
@@ -245,19 +258,14 @@ def vasculhar_pagina_recursivamente(url_pagina, pasta_pai, visited_urls, ano, is
                 if not href or href == url_pagina or href in visited_urls:
                     continue
 
-                # ==========================================
-                # Tratamento Inteligente de Data e Descrição
-                # ==========================================
                 meta_visual = mapa_metadados_visuais.get(href, {})
                 descricao = meta_visual.get("descricao") or item.get("description", "")
                 data_pub = meta_visual.get("data")
                 
-                # Se não encontrou no HTML (ex: página 2), pega da API e escapa do 1969
                 if not data_pub:
                     data_pub = item.get("effective", "")
                     if not data_pub or "1969" in data_pub:
                         data_pub = item.get("created", item.get("modified", ""))
-                # ==========================================
 
                 if tipo in ["File", "Document"]:
                     tentar_baixar_arquivo(href, pasta_atual, titulo_seguro, titulo, ano, url_pagina, descricao, data_pub)
@@ -274,7 +282,7 @@ def vasculhar_pagina_recursivamente(url_pagina, pasta_pai, visited_urls, ano, is
             time.sleep(0.3)
 
     # =================================================================
-    # FASE 2: RASPAGEM HTML (Busca tabelas detalhadas e links perdidos)
+    # FASE 2: RASPAGEM HTML
     # =================================================================
     if soup:
         tabela = soup.find('table', class_='edital-items-table')
