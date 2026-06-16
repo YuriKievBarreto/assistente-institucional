@@ -115,7 +115,7 @@ data/processed/
 vector_db/
 chroma_db/
 faiss_index/
-
+teste.py
 # Arquivos grandes
 *.pdf
 *.docx
