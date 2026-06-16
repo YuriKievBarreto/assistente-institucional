@@ -106,5 +106,5 @@ class ConversorRAGMarkdown:
 
 # Para executar:
 if __name__ == "__main__":
-    extrator = ConversorRAGMarkdown("pdfs_ifpb_completos/editais/ensino")
+    extrator = ConversorRAGMarkdown("pdfs_ifpb_completos/editais/invacao")
     extrator.processar_datalake()
