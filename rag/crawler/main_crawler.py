@@ -2,6 +2,7 @@ from crawler_editais import baixar_editais
 from crawler_resolucoes import IFPBCrawlerUnificado
 from crawler_info_geral import baixar_da_web
 
+
 URLS_CONSUPER = {
     2026: "https://site.com/2026"
 }
@@ -66,6 +67,9 @@ DIRETORIO_WEB_PAGES = "pdfs_ifpb_completos/paginas_web"
 
 
 ## Editais
+baixar_editais(URLS_ENSINO, "pdfs_ifpb_completos/editais/ensino")
+baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
+
 baixar_editais(URLS_ENSINO, "pdfs_ifpb_completos/editais/ensino")
 baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
 """
