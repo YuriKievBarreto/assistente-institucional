@@ -3,47 +3,21 @@ from crawler_resolucoes import IFPBCrawlerUnificado
 from crawler_info_geral import baixar_da_web
 
 
-URLS_CONSUPER = {
-    2026: "https://site.com/2026"
-}
+import logging
+from dotenv import load_dotenv
+import os
+from dotenv import load_dotenv
 
-URLS_ASSISTENCIA_ESTUDANTIL = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/assistencia-estudantil/2026",
-    #2025: "https://outro-site.com/2025",
-}
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-URLS_DIRECAO_GERAL = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/direcao-geral/2026" 
-    #2025: "https://outro-site.com/2025",
-}
-URLS_ENSINO = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/ensino/editais-2026"
-    #2025: "https://outro-site.com/2025",
-}
-
-URLS_EXTENSAO = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/extensao/2026"
-    #2025: "https://outro-site.com/2025",
-}
-
-URLS_INOVACAO = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-inovacao"
-    #2025: "https://outro-site.com/2025",
-}
-
-
-URLS_PESQUISA = {
-    2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2026",
-    2024: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2024"
-}
-
+data_dir = os.getenv("DATALAKE_DIR")
 
 WEB_PAGE_HUBS = {
-        #"institucional": "https://www.ifpb.edu.br/campus/cajazeiras/institucional",
-        #"assistencia-estudantil":"https://www.ifpb.edu.br/campus/cajazeiras/assistencia-estudantil",
+        "institucional": "https://www.ifpb.edu.br/campus/cajazeiras/institucional",
+        "assistencia-estudantil":"https://www.ifpb.edu.br/campus/cajazeiras/assistencia-estudantil",
         "ensino": "https://www.ifpb.edu.br/campus/cajazeiras/ensino",
-        #"pesquisa": "https://www.ifpb.edu.br/campus/cajazeiras/pesquisa",
-        #"extensao": "https://www.ifpb.edu.br/campus/cajazeiras/extensao",
+        "pesquisa": "https://www.ifpb.edu.br/campus/cajazeiras/pesquisa",
+        "extensao": "https://www.ifpb.edu.br/campus/cajazeiras/extensao",
 
 
         #"conselho-diretor":"https://www.ifpb.edu.br/campus/cajazeiras/conselho-diretor",
@@ -56,30 +30,83 @@ WEB_PAGE_HUBS = {
         
     }
 
-DIRETORIO_WEB_PAGES = "pdfs_ifpb_completos/paginas_web"
+DIRETORIO_WEB_PAGES = f"{data_dir}/paginas_web"
+
+CONFIG_EDITAIS = {
+
+    "ensino": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/ensino/editais-2026"
+        },
+        "caminho": f"{data_dir}/editais/ensino"
+    },
+
+    "assistencia_estudantil": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/assistencia-estudantil/2026"
+        },
+        "caminho": f"{data_dir}/editais/assistencia_estudantil"
+    },
+
+    "direcao_geral": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/direcao-geral/2026"
+        },
+        "caminho": f"{data_dir}/editais/direcao_geral"
+    },
+
+    "extensao": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/extensao/2026"
+        },
+        "caminho": f"{data_dir}/editais/extensao"
+    },
+
+    "inovacao": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-inovacao"
+        },
+        "caminho": f"{data_dir}/editais/invacao"
+    },
+    
+
+    "pesquisa": {
+        "urls": {
+            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2026",
+            2024: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2024"
+        },
+        "caminho": f"{data_dir}/editais/pesquisa"
+    },
+
+}
 
 
 
+def execute_all_crawlers():
+    load_dotenv()
+    tarefas = [
+        ("Web Pages", lambda: baixar_da_web(WEB_PAGE_HUBS, DIRETORIO_WEB_PAGES)),
+        ("Reitoria", lambda: IFPBCrawlerUnificado().executar()),
+    ]
+
+    for nome, tarefa in tarefas:
+        try:
+            logging.info(f"Iniciando: {nome}")
+            tarefa()
+        except Exception:
+            logging.error(f"Falha fatal em {nome}", exc_info=True)
+
+   
+    for nome_categoria, conf in CONFIG_EDITAIS.items():
+        try:
+            logging.info(f"Processando categoria: {nome_categoria}")
+            baixar_editais(conf["urls"], conf["caminho"])
+        except Exception:
+            logging.error(f"Falha na categoria {nome_categoria}", exc_info=True)
 
 
-## Páginas Web
-#baixar_da_web(WEB_PAGE_HUBS, DIRETORIO_WEB_PAGES)
+    
 
 
-## Editais
-baixar_editais(URLS_ENSINO, "pdfs_ifpb_completos/editais/ensino")
-baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
-
-baixar_editais(URLS_ENSINO, "pdfs_ifpb_completos/editais/ensino")
-baixar_editais(URLS_ASSISTENCIA_ESTUDANTIL, "pdfs_ifpb_completos/editais/assistencia_estudantil")
-"""
-baixar_editais(URLS_DIRECAO_GERAL, "pdfs_ifpb_completos/editais/direcao_geral")
-
-baixar_editais(URLS_EXTENSAO, "pdfs_ifpb_completos/editais/extensao")
-baixar_editais(URLS_INOVACAO, "pdfs_ifpb_completos/editais/invacao")
-baixar_editais(URLS_PESQUISA, "pdfs_ifpb_completos/editais/pesquisa")
-
-## Resoluções consuper
-IFPBCrawlerUnificado().executar()
-"""
+execute_all_crawlers()
 

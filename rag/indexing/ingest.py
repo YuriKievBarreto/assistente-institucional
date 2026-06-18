@@ -10,12 +10,12 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import VectorParams, Distance
 
 
-def ingest_pipeline():
-    chunker = RAGChunking(datalake_directory="pdfs_ifpb_completos/editais/invacao")
+def ingest_pipeline(DATALAKE_DIR: str):
+    chunker = RAGChunking(datalake_directory=DATALAKE_DIR)
     batch_size = 100
     batch_buffer = []
 
-    for root, _, files in os.walk("pdfs_ifpb_completos"):
+    for root, _, files in os.walk("DATALAKE_DIR"):
         for file in files:
             if file.endswith(".md"):
                 caminho_md = os.path.join(root, file)
@@ -56,4 +56,3 @@ def ingest_pipeline():
                             force_recreate=True
                         )
 
-ingest_pipeline()
