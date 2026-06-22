@@ -8,6 +8,7 @@ class ChatInput(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
 
+
 class RAGConfig(BaseModel):
     k_documents: int = 4
     model_name: str =  "llama-3.1-8b-instant"

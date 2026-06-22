@@ -20,6 +20,9 @@ services:
     environment:
       - REDIS_ARGS=--appendonly yes
 
+  postgres:
+    image: 
+
 volumes:
   qdrant_data_assistente:
   redis_data_assistente:

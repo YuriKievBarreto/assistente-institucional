@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente Virtual IFPB</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <link rel="stylesheet", href="style.css">
+      
+</link>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <div class="ifpb-logo-wrap">
+            <img src="https://www.ifpb.edu.br/static/media/logo.20d47050.png" alt="Logo IFPB">
+        </div>
+        <div class="sidebar-tagline">Assistente Virtual Institucional</div>
+    </div>
+
+    <div style="height:14px;"></div>
+    <button class="new-chat-btn" onclick="novaConversa()">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        Nova conversa
+    </button>
+
+    <div class="sidebar-section-label">Recentes</div>
+    <div class="chat-history" id="chat-history"></div>
+
+    <div class="sidebar-footer">
+        <div class="user-profile">
+            <div class="profile-avatar">U</div>
+            <div>
+                <div class="profile-name">Usuário</div>
+                <div class="profile-role">Comunidade IFPB</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="main-header">
+        <div class="main-header-left">
+            <div class="header-icon">
+                <i class="ti ti-robot" aria-hidden="true"></i>
+            </div>
+            <div>
+                <div class="header-title">Assistente Virtual IFPB</div>
+                <div class="header-subtitle">Tire dúvidas, busque informações e muito mais</div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="online-badge">
+                <span class="online-dot"></span>
+                Online
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" title="Configurações"><i class="ti ti-settings" aria-hidden="true"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chat-box"></div>
+
+    <form class="chat-input-area" id="chat-form">
+        <div class="input-wrapper">
+            <input type="text" id="user-input" placeholder="Digite sua mensagem..." autocomplete="off">
+            <button type="submit" class="send-btn" id="send-btn" aria-label="Enviar mensagem">
+                <i class="ti ti-send" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="input-hint">Assistente do Instituto Federal da Paraíba · As respostas podem conter erros. Verifique informações importantes.</div>
+    </form>
+</div>
+
+<script src="script.js">
+</script>
+</body>
+</html>
