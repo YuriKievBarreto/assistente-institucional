@@ -1,6 +1,6 @@
 from langchain_groq import ChatGroq
-from chatbot.rag_logic import RAGRetriever
-from chatbot.memory import MemoryManager
+from app.chatbot.rag_logic import RAGRetriever
+from app.chatbot.memory import MemoryManager
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel

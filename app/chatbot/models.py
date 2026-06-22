@@ -3,7 +3,7 @@ from typing import List, Optional
 
 class ChatInput(BaseModel):
     query: str
-    session_id: Optional[str] = None
+    session_id: str
     
 class ChatResponse(BaseModel):
     answer: str

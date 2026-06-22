@@ -1,6 +1,6 @@
-from chatbot.models import RAGConfig
+from app.chatbot.models import RAGConfig
 from langchain_core.vectorstores import VectorStoreRetriever
-from database.qdrant_vector_store import vector_store
+from app.database.qdrant_vector_store import vector_store
 from langchain_core.documents import Document
 
 

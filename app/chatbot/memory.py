@@ -1,7 +1,7 @@
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_classic.memory import ConversationBufferWindowMemory
 class MemoryManager:
-    def __init__(self, session_id: int, window_size =10) -> None:
+    def __init__(self, session_id: str, window_size =10) -> None:
         self.session_id = session_id
         self.memory = ConversationBufferWindowMemory(
             k=window_size,
