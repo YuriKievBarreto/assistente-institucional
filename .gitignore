@@ -101,7 +101,7 @@ chroma_db/
 vectorstore/
 faiss_index/
 storage/
-
+test_chatbot.py
 # Cache
 .cache/
 
