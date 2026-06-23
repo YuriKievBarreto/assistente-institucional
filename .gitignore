@@ -93,7 +93,7 @@ secrets.json
 credentials.json
 
 # Model files (opcional para ML/RAG)
-models/
+
 checkpoints/
 
 # LangChain / Chroma / Vector DB (ajuste conforme necessário)
