@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field, Relationship
 import uuid
 from datetime import datetime
 from typing import Optional
+from pydantic import EmailStr
 
 class UserBase(SQLModel):
     name: str
@@ -26,7 +27,7 @@ class User(UserBase, table= True):
     
     id: uuid.UUID =  Field(default_factory=uuid.uuid4, primary_key=True)
 
-    email: str = Field(unique=True)
+    email: EmailStr = Field(unique=True)
     avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     deleted_at: Optional[datetime] = None

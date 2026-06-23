@@ -6,3 +6,4 @@ api_router = APIRouter()
 
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 api_router.include_router(user_router, prefix="/users", tags=["Users"])
+api_router.include_router(user_router, prefix="/auth", tags=["Auth"])
