@@ -1,8 +1,19 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from app.database.create_tables import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 
-app = FastAPI(title="Assistente institucional - IFPB Campus Cajazeiras")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_tables()
+    yield
+
+app = FastAPI(
+    title="Assistente institucional - IFPB Campus Cajazeiras",
+    lifespan=lifespan
+)
+
 
 app.add_middleware(
     CORSMiddleware,
