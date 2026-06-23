@@ -45,6 +45,8 @@ ENV/
 *.swo
 *~
 
+tasks.txt
+
 # Testing
 .pytest_cache/
 .coverage

@@ -3,13 +3,29 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
+class UserAccountBase(SQLModel):
+    provider: str
+    provider_id: str
+
+   
+
+class UserAccountCreate(UserAccountBase): 
+    password_hash : Optional[str] = None # só quando o provider é Local
+    
+
+    
+class UserAccountResponse(SQLModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    created_at: datetime 
+
+
 class UserAccount(SQLModel, table=True):
     __tablename__ = "user_accounts"
     id: uuid.UUID = Field(primary_key=True, default_factory=uuid.uuid4)
     user_id: uuid.UUID = Field(foreign_key="users.id")
-    provider: str
-    provider_id: str
     password_hash : Optional[str] = None # só quando o provider é Local
     created_at: datetime = Field(default_factory=datetime.now)
+    deleted_at: Optional[datetime] = None
 
     user : "User" = Relationship(back_populates="accounts")

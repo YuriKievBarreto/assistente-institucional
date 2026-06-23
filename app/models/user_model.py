@@ -3,12 +3,29 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-class User(SQLModel, table= True):
+class UserBase(SQLModel):
+    name: str
+    email: str
+
+
+
+class UserResponse(UserBase):
+    id: uuid.UUID
+    avatar_url: Optional[str] = None
+    created_at: datetime
+
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+
+class User(UserBase, table= True):
     __tablename__ = "users"
     
     id: uuid.UUID =  Field(default_factory=uuid.uuid4, primary_key=True)
 
-    name: str
     email: str = Field(unique=True)
     avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
