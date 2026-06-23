@@ -1,14 +1,16 @@
-from fastapi import APIRouter
-from app.models.user_model import UserResponse, UserCreate
+from fastapi import APIRouter, status, Depends
+from sqlmodel import Session
+from app.models.user_model import RegisterResponse, UserCreate
+from app.database.postgres import get_session
+from app.api.services import auth_service
+
 
 auth_router = APIRouter()
 
-@auth_router.post("/register", response_model=UserResponse)
-async def register(user: UserCreate) -> UserResponse:
+@auth_router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register(req: UserCreate, session:Session = Depends(get_session)):
+    return auth_service.register(session, req)
 
-
-    
-    return UserResponse()
 
 @auth_router.post("/login")
 async def login():

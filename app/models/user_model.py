@@ -37,3 +37,8 @@ class User(UserBase, table= True):
 
 
 
+
+class RegisterResponse(SQLModel):
+    user: UserResponse
+    access_token: str
+    token_type: str = "bearer"
