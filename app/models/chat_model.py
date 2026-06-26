@@ -34,14 +34,33 @@ class Chat(ChatBase, table=True):
     user: "User" = Relationship(back_populates="chats")
 
 
-class MessageHistory(SQLModel):
+
+
+
+
+class ChatMessageHistory(SQLModel):
     role: str
     content: str
+    created_at: datetime
+
+
+class ChatInstance(SQLModel):
+    title: str
+    history: List[ChatMessageHistory]
+    created_at: datetime
+
+
+class ChatMigrateRequest(SQLModel):
+    chats_data: list[ChatInstance]
+
 
 
 class ChatInputRequest(SQLModel):
     query: str
     session_id: str
-    history: List[MessageHistory]
+    history: List[ChatMessageHistory]
+
+
+
 
 

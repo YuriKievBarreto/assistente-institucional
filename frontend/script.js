@@ -260,6 +260,8 @@
                 <p>Digite uma mensagem para começar ou selecione uma conversa</p>
             </div>`;
         renderizarSidebar();
+
+        console.log(carregarTodosChats())
     }
 
     init();
