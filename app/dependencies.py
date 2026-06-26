@@ -1,5 +1,5 @@
 from app.chatbot.engine import ChatEngine
-from app.chatbot.models import ChatInput
+from app.models.chat_model import ChatInputRequest
 from app.chatbot.rag_logic import RAGConfig, RAGRetriever
 from app.chatbot.memory import MemoryManager
 from app.database.qdrant_vector_store import vector_store
@@ -7,7 +7,7 @@ from app.database.qdrant_vector_store import vector_store
 from fastapi import Depends
 
 
-def get_session_id(req: ChatInput) -> str:
+def get_session_id(req: ChatInputRequest) -> str:
     return req.session_id
 
 def get_config() -> RAGConfig:

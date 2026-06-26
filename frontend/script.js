@@ -223,18 +223,31 @@
     });
 
     async function enviarMensagem(textoDoUsuario) {
-        try {
-            const resposta = await fetch('http://127.0.0.1:8000/api/v1/chat/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: textoDoUsuario, session_id: currentChatId })
-            });
-            return await resposta.json();
-        } catch (erro) {
-            console.error('Erro ao conectar com o servidor:', erro);
-            addBotMessage('Não foi possível conectar com o servidor. Tente novamente.');
-        }
+    try {
+        // pega o histórico atual do chat sem a mensagem que acabou de ser enviada
+        const chat = buscarChat(currentChatId);
+        const history = chat ? chat.messages.slice(0, -1).map(msg => ({
+            role: msg.role,
+            content: msg.content
+        })) : [];
+
+        console.log(history)
+
+        const resposta = await fetch('http://127.0.0.1:8000/api/v1/chat/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: textoDoUsuario,
+                session_id: currentChatId,
+                history: history
+            })
+        });
+        return await resposta.json();
+    } catch (erro) {
+        console.error('Erro ao conectar com o servidor:', erro);
+        addBotMessage('Não foi possível conectar com o servidor. Tente novamente.');
     }
+}
 
     // ── INICIALIZAÇÃO ────────────────────────────────────────────
 

@@ -45,5 +45,5 @@ class RegisterResponse(SQLModel):
 
 
 class LoginRequest(SQLModel):
-    email: str
+    email: EmailStr
     password: str

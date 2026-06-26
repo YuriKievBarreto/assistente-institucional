@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field, Relationship
 import uuid
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class ChatBase(SQLModel):
@@ -17,6 +17,7 @@ class ChatResponse(ChatBase):
    id: uuid.UUID
    user_id: uuid.UUID
    created_at: datetime
+   chat_id: uuid.UUID
 
 
 
@@ -31,3 +32,16 @@ class Chat(ChatBase, table=True):
 
     messages: list["Message"] = Relationship(back_populates="chat")
     user: "User" = Relationship(back_populates="chats")
+
+
+class MessageHistory(SQLModel):
+    role: str
+    content: str
+
+
+class ChatInputRequest(SQLModel):
+    query: str
+    session_id: str
+    history: List[MessageHistory]
+
+

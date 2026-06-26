@@ -1,19 +1,26 @@
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_classic.memory import ConversationBufferWindowMemory
+from langchain_core.chat_history import InMemoryChatMessageHistory
+from app.models.chat_model import MessageHistory
+from langchain_core.messages import AIMessage, HumanMessage
+
 class MemoryManager:
-    def __init__(self, session_id: str, window_size =10) -> None:
+    def __init__(self, session_id: str, window_size =10, history: list[MessageHistory] = []) -> None:
         self.session_id = session_id
-        self.memory = ConversationBufferWindowMemory(
-            k=window_size,
-            return_messages=True,
-            memory_key="chat_history"
-        )
+        self.history = InMemoryChatMessageHistory()
+        self.load_history(history)
 
-    def get_memory(self) -> ConversationBufferWindowMemory:
-        return self.memory
-
-    def clear(self) -> None:
-        self.memory.clear()
+    
+    def load_history(self, history: list[MessageHistory]) -> None:
+        for message in history:
+            if message.role == "human":
+                self.history.add_message(HumanMessage(content=message.content))
+            else:
+                self.history.add_message(AIMessage(content=message.content))
 
     def get_history(self) -> list:
-        return self.memory.chat_memory.messages
+        return self.history.messages
+
+    def get_store(self) -> InMemoryChatMessageHistory:
+        return self.history
+
+    def clear(self) -> None:
+        self.history.clear

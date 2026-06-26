@@ -63,12 +63,8 @@ class ChatEngine:
     def chat(self, question: str):
         response = self.chain.invoke({"question": question})
         content = str(response.content)
-        self.memory.get_memory().save_context(
-            {"input": question},
-            {"output": content}
-        )
 
-        return response.content
+        return content
 
         
         
