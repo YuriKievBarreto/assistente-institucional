@@ -1,9 +1,9 @@
 from sqlmodel import Session
 from fastapi import HTTPException, status
-from app.models.user_model import UserCreate, RegisterResponse, UserResponse
+from app.models.user_model import UserCreate, RegisterResponse, UserResponse, LoginRequest, User
 from app.models.user_accounts_model import UserAccountCreate
 from app.repositories import user_repository, user_account_repository
-from app.core.security import hash_password, generate_token
+from app.core.security import hash_password, generate_token, verify_password
 
 
 def register(session: Session, user_data: UserCreate):
@@ -45,4 +45,45 @@ def register(session: Session, user_data: UserCreate):
         token_type="bearer"
     )
 
+
+def login(session: Session, user_data: LoginRequest):
+    db_user: User = user_repository.get_user_by_email(session, user_data.email)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="email ou senha incorreto(s)"
+        )
+
+    db_user_account = user_account_repository.find_account_by_user_id(session, db_user.id)
+    if not db_user_account:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="email ou senha incorreto(s)"
+        )
+
+    if not verify_password(user_data.password, db_user_account.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="email ou senha incorreto(s)"
+        )
+    
+    token = generate_token(str(db_user.id))
+
+    return RegisterResponse(
+        user=UserResponse(
+            id=db_user.id,
+            name=db_user.name,
+            email=db_user.email,
+            avatar_url=db_user.avatar_url,
+            created_at=db_user.created_at
+        ),
+        access_token=token,
+        token_type="bearer"
+    )
+
+    
+
+
+    
+    
 

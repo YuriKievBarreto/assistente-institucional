@@ -13,3 +13,8 @@ def create_user_account(session: Session, user_id: uuid.UUID, user_account_data:
     session.commit()
     session.refresh(new_user_account)
     return new_user_account
+
+
+def find_account_by_user_id(session: Session, user_id: uuid.UUID):
+    query = select(UserAccount).where(UserAccount.user_id == user_id)
+    return session.exec(query).first()
