@@ -2,10 +2,10 @@
 // Lembre-se: no HTML, a tag <script> deve usar type="module":
 //   <script type="module" src="script.js"></script>
 
-import { chatBox, userInput } from './constants.js';
-import { trocarAba, abrirModalAuth, fecharModalAuth } from './modal.js';
-import { fazerLogin, fazerRegister, isLoggedIn, atualizarPerfilUI, verificarSessao } from './auth.js';
-import { renderizarSidebar, novaConversa } from './chat.js';
+import { chatBox, userInput } from './js/constants.js';
+import { trocarAba, abrirModalAuth, fecharModalAuth } from './js/modal.js';
+import { fazerLogin, fazerRegister, isLoggedIn, atualizarPerfilUI, verificarSessao } from './js/auth.js';
+import { renderizarSidebar, novaConversa } from './js/chat.js';
 
 async function init() {
     chatBox.innerHTML = `

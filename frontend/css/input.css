@@ -1,0 +1,62 @@
+/* ── ÁREA DE INPUT ───────────────────────────────────────── */
+
+.chat-input-area {
+    padding: 18px 40px 20px;
+    border-top: 0.5px solid var(--border);
+    background: var(--bg-white);
+    flex-shrink: 0;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 8px 8px 18px;
+    transition: border-color 0.2s;
+}
+.input-wrapper:focus-within {
+    border-color: var(--ifpb-green-mid);
+    background: var(--bg-white);
+}
+
+input[type="text"] {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: transparent;
+    color: var(--text-dark);
+    font-family: inherit;
+}
+input[type="text"]::placeholder { color: var(--text-muted); }
+
+/* ── BOTÃO ENVIAR ────────────────────────────────────────── */
+
+.send-btn {
+    background-color: var(--ifpb-green);
+    color: #fff;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+}
+.send-btn:hover    { background-color: var(--ifpb-green-dark); }
+.send-btn:active   { transform: scale(0.95); }
+.send-btn:disabled { background-color: #a0c49a; cursor: not-allowed; }
+.send-btn i { font-size: 18px; }
+
+.input-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+}

@@ -1,0 +1,34 @@
+/* ── RESET ────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── TOKENS ──────────────────────────────────────────────── */
+
+:root {
+    --ifpb-green:       #2d6a27;
+    --ifpb-green-dark:  #1e4a1a;
+    --ifpb-green-mid:   #3a8032;
+    --ifpb-green-light: #e8f5e5;
+    --ifpb-green-pale:  #f2faf0;
+    --ifpb-red:         #c0392b;
+    --ifpb-red-dark:    #96281b;
+    --ifpb-red-light:   #fdecea;
+    --ifpb-gold:        #f0a500;
+    --text-dark:        #1a2b18;
+    --text-mid:         #4a6646;
+    --text-muted:       #7a9474;
+    --border:           #ccdec8;
+    --bg-page:          #f0f4ef;
+    --bg-white:         #ffffff;
+    --bg-surface:       #f7faf6;
+}
+
+/* ── BODY ────────────────────────────────────────────────── */
+
+body {
+    background-color: var(--bg-page);
+    display: flex;
+    height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+}

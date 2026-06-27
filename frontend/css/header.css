@@ -1,0 +1,76 @@
+/* ── CABEÇALHO ───────────────────────────────────────────── */
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.main-header {
+    padding: 0 32px;
+    height: 64px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.main-header-left { display: flex; align-items: center; gap: 14px; }
+
+.header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--ifpb-green-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.header-icon i { font-size: 20px; color: var(--ifpb-green); }
+
+.header-title    { font-size: 15px; font-weight: 600; color: var(--text-dark); }
+.header-subtitle { font-size: 12px; color: var(--text-muted); }
+
+/* ── BADGE ONLINE ────────────────────────────────────────── */
+
+.online-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--ifpb-green-light);
+    border: 0.5px solid #b0d4ab;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--ifpb-green);
+    font-weight: 500;
+}
+.online-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ifpb-green-mid);
+}
+
+/* ── AÇÕES ───────────────────────────────────────────────── */
+
+.header-actions { display: flex; gap: 8px; margin-left: 12px; }
+
+.icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 0.5px solid var(--border);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover { background: var(--ifpb-green-light); color: var(--ifpb-green); }
+.icon-btn i { font-size: 17px; }
