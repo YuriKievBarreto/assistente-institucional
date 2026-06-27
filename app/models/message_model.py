@@ -31,3 +31,11 @@ class Message(MessageBase, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
 
     chat: "Chat" = Relationship(back_populates="messages")
+
+
+
+class MessageResponse(SQLModel):
+    id: uuid.UUID
+    role: str
+    content: str
+    created_at: datetime
