@@ -14,6 +14,7 @@ from app.database.qdrant_vector_store import vector_store
 
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 def get_session_id(req: ChatInputRequest) -> str:
     return req.session_id
@@ -63,4 +64,13 @@ def get_current_user(
     return user
 
 
-    
+def get_current_user_optional( token: str | None = Depends(oauth_scheme_optional),
+    session: Session = Depends(get_session)) -> User | None:
+        print("tentando verificar se há usuario autorizado")
+        if not token:
+            print("nenhum access token encontrado")
+            return None
+        try:
+            return get_current_user(token, session)
+        except HTTPException:
+            return None
