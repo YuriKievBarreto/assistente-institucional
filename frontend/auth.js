@@ -3,7 +3,7 @@
 import { API_BASE } from './constants.js';
 import { carregarTodosChats } from './storage.js';
 import { abrirModalAuth, fecharModalAuth } from './modal.js';
-import { excluirChat } from './chat.js';
+import { excluirChat, carregarChatsDoBackend, renderizarSidebar } from './chat.js';
 
 // ── TOKEN ─────────────────────────────────────────────────────
 
@@ -57,6 +57,8 @@ export async function fazerLogin(e) {
     } catch {
         errorEl.textContent = 'Erro ao conectar com o servidor.';
     }
+
+    location.reload()
 }
 
 // ── REGISTER ─────────────────────────────────────────────────
@@ -160,7 +162,10 @@ export function atualizarPerfilUI(user) {
 
 
 export async function verificarSessao() {
-    if (!isLoggedIn()) return;
+    if (!isLoggedIn()) {
+        renderizarSidebar(); // renderiza vazio se não logado
+        return;
+    }
 
     try {
         const res = await fetch(`${API_BASE}/auth/me`, {
@@ -168,17 +173,17 @@ export async function verificarSessao() {
         });
 
         if (!res.ok) {
-            // token expirado ou inválido
             removeToken();
             atualizarPerfilUI(null);
+            renderizarSidebar();
             return;
         }
 
         const user = await res.json();
         atualizarPerfilUI(user);
-        console.log("sessao verificada com sucesso: ", user)
+        await carregarChatsDoBackend(); // substitui localStorage e renderiza sidebar
     } catch {
-        // servidor fora do ar — mantém o token, mas não exibe perfil
         console.warn('Não foi possível verificar a sessão.');
+        renderizarSidebar();
     }
 }

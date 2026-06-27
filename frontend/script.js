@@ -5,7 +5,7 @@
 import { chatBox, userInput } from './constants.js';
 import { trocarAba, abrirModalAuth, fecharModalAuth } from './modal.js';
 import { fazerLogin, fazerRegister, isLoggedIn, atualizarPerfilUI, verificarSessao } from './auth.js';
-import { renderizarSidebar } from './chat.js';
+import { renderizarSidebar, novaConversa } from './chat.js';
 
 async function init() {
     chatBox.innerHTML = `
@@ -14,11 +14,11 @@ async function init() {
             <p>Digite uma mensagem para começar ou selecione uma conversa</p>
         </div>`;
 
-    renderizarSidebar();
-    await verificarSessao()
+    await verificarSessao(); // já carrega chats e renderiza sidebar internamente
 
     // ── Modal ──────────────────────────────────────────────────
     document.getElementById('tab-login').addEventListener('click', () => trocarAba('login'));
+    document.getElementById('new-chat-btn').addEventListener('click', novaConversa);
     document.getElementById('tab-register').addEventListener('click', () => trocarAba('register'));
     document.getElementById('form-login').addEventListener('submit', fazerLogin);
     document.getElementById('form-register').addEventListener('submit', fazerRegister);

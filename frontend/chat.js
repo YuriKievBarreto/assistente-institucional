@@ -3,6 +3,7 @@
 import { API_BASE, chatForm, chatBox, userInput, sendBtn, USER_AVATAR } from './constants.js';
 import { carregarTodosChats, salvarTodosChats, buscarChat, salvarMensagem, gerarId, gerarTitulo } from './storage.js';
 import { renderizarMensagens, addBotMessage, showTyping, hideTyping } from './ui.js';
+import { authHeaders } from './auth.js';
 
 // ── ESTADO ───────────────────────────────────────────────────
 
@@ -96,11 +97,13 @@ async function enviarMensagem(textoDoUsuario) {
 
         const resposta = await fetch(`${API_BASE}/chat/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
+            
             body: JSON.stringify({
                 query: textoDoUsuario,
                 session_id: currentChatId,
-                history
+                history,
+                title: chat.title
             })
         });
 
@@ -158,3 +161,24 @@ chatForm.addEventListener('submit', async (e) => {
         addBotMessage(resposta);
     }
 });
+
+
+export async function carregarChatsDoBackend() {
+    console.log("tentando carregar chats do backend...")
+    try {
+        const res = await fetch(`${API_BASE}/chat`, {
+            headers: authHeaders()
+        });
+
+        console.log(res)
+
+        if (!res.ok) return;
+
+        const chats = await res.json();
+        salvarTodosChats(chats); // substitui o localStorage
+        renderizarSidebar();
+    } catch(e) {
+        console.warn('Erro ao carregar chats do backend.');
+        renderizarSidebar();
+    }
+}
