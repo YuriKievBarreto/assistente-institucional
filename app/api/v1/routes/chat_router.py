@@ -14,6 +14,7 @@ chat_router = APIRouter()
 
 @chat_router.post("/")
 async def chat(req: ChatInputRequest, engine: ChatEngine = Depends(get_engine)):
+    print(req)
     return chat_service.chat(engine, req)
 
 
