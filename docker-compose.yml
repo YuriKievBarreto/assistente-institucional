@@ -24,6 +24,27 @@ services:
     volumes:
       - postgres_data_assistente:/var/lib/postgresql/data 
 
+  
+  api:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: assistente-institucional-api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      QDRANT_URL: http://qdrant:6333
+
+    depends_on:
+      - postgres
+      - qdrant
+
 volumes:
   qdrant_data_assistente:
   postgres_data_assistente:
