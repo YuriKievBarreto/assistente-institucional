@@ -12,7 +12,7 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 HF_TOKEN = os.getenv("HF_TOKEN")
 EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID")
 
-qdrant_client = QdrantClient("http://localhost:6333")
+qdrant_client = QdrantClient(QDRANT_URL)
 
 embeddings = HuggingFaceEndpointEmbeddings(
     model=EMBEDDING_MODEL_ID,
