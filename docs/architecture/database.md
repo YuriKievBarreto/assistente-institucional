@@ -1,43 +1,44 @@
-# Database
+# Banco de Dados
 
-## Overview
+## Visão geral
 
-The project uses two databases with distinct responsibilities:
+O projeto utiliza dois bancos de dados com responsabilidades distintas:
 
-- **Qdrant** — vector database responsible for semantic search over IFPB institutional documents
-- **PostgreSQL** — relational database responsible for users, chat sessions, and message history
+- **Qdrant** — banco vetorial responsável pela busca semântica nos documentos institucionais do IFPB
+- **PostgreSQL** — banco relacional responsável por usuários, sessões de chat e histórico de mensagens
 
-## Why two databases?
+## Por que dois bancos?
 
-Qdrant is specialized in vector similarity search, which is the core of the RAG pipeline.
-PostgreSQL handles the application's relational data, where structured queries and referential
-integrity matter more than semantic search.
+O Qdrant é especializado em busca por similaridade vetorial, que é o núcleo do pipeline RAG.
+O PostgreSQL cuida dos dados relacionais da aplicação, onde consultas estruturadas e integridade
+referencial importam mais do que busca semântica.
 
-Keeping responsibilities separate avoids the need for extensions like pgvector, which would add
-complexity to PostgreSQL with no real benefit given that Qdrant is already in the stack.
+Manter as responsabilidades separadas evita a necessidade de extensões como pgvector, que
+adicionariam complexidade ao PostgreSQL sem benefício real, dado que o Qdrant já está na stack.
 
-## Relational modeling
+## Modelagem relacional
 
-### Design decisions
+### Decisões de design
 
-- UUIDs as primary keys across all tables — avoids exposing sequential IDs in the API
-- Soft delete via `deleted_at` on `users`, `chats`, and `messages` — preserves history for analysis
-- Authentication isolated in `user_accounts` — allows multiple providers (local, Google)
-  per user without nullable columns in the main table
-- `messages.content` as `text` — no character limit for long messages
+- UUIDs como chave primária em todas as tabelas — evita expor IDs sequenciais na API
+- Soft delete via `deleted_at` em `users` e `chats` — preserva histórico para análise
+- Autenticação isolada em `user_accounts` — permite múltiplos provedores (local, Google)
+  por usuário sem colunas nulas na tabela principal
+- `messages.content` como `text` — sem limite de caracteres para mensagens longas
 
-### Relationships
+### Relacionamentos
 
-- `users` 1:N `user_accounts` — a user can have multiple authentication methods
-- `users` 1:N `chats` — a user can have multiple chats
-- `chats` 1:N `messages` — a chat can have multiple messages
+- `users` 1:N `user_accounts` — um usuário pode ter múltiplos métodos de autenticação
+- `users` 1:N `chats` — um usuário pode ter múltiplos chats
+- `chats` 1:N `messages` — um chat pode ter múltiplas mensagens
 
-### Diagram
+### Diagrama
 
-![Database diagram](./database_diagram.png)
+![Diagrama do banco de dados](./db_diagram.drawio.svg)
 
 ## ORM
 
-SQLModel — unifies SQLAlchemy (database layer) and Pydantic (validation) in a single class
-definition, avoiding model duplication between the data layer and the API.
+SQLModel — unifica SQLAlchemy (camada de banco) e Pydantic (validação) em uma única definição
+de classe, evitando duplicação de modelos entre a camada de dados e a API.
 
+Migrations gerenciadas pelo Alembic.
