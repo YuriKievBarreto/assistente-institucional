@@ -7,7 +7,7 @@ class RAGChunking:
         self.datalake_directory = datalake_directory
         self.recursive_splitter = RecursiveCharacterTextSplitter(
             chunk_overlap=200,
-            chunk_size=1000,
+            chunk_size=600,
             separators=["\n\n", "\n", "###", "##", "#", ".", " ", ""]
         )
         
