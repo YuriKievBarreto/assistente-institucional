@@ -1,11 +1,14 @@
 .venv
 .env
 pdfs_ifpb_completos/
+pdfs_reunidos
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
+
+reunir_pdfs.py
 # C extensions
 *.so
 

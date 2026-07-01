@@ -2,8 +2,8 @@ from langchain_groq import ChatGroq
 from app.chatbot.rag_logic import RAGRetriever
 from app.chatbot.memory import MemoryManager
 
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 
 import os
 from dotenv import load_dotenv
@@ -39,7 +39,7 @@ class ChatEngine:
                     1. Responda estritamente com base no contexto.
                     2. Se a informação não estiver no contexto, diga claramente que não a encontrou.
                     3. Sempre cite a fonte (ex: <strong>Resolução 30/2026</strong>) e a url de referência para dar autoridade.
-
+                    4. Sempre cite a url da página de referência contida em "metadata"
                     Contexto fornecido:
                     {context}
 
@@ -50,16 +50,26 @@ class ChatEngine:
 
                 MessagesPlaceholder("chat_history"),
                 ("human", "{question}")]
+
+            
         )
 
-        return RunnableParallel(
-            question=RunnablePassthrough(),
-            context = lambda x: self.retriever.format_context(
-                self.retriever.retrieve(x["question"])
-            ),
-            chat_history = lambda x: self.memory.get_history()
-        ) | prompt | self.llm
-    
+        def retrieve_and_format(x):
+            docs = self.retriever.retrieve(x["question"])
+            return self.retriever.format_context_with_metadata(docs)
+
+        chain = (
+        RunnableParallel(
+            question=lambda x: x["question"],
+            context=RunnableLambda(retrieve_and_format),
+            chat_history=lambda x: self.memory.get_history()
+        )
+        | prompt
+        | self.llm
+    )
+
+        return chain
+        
     def chat(self, question: str):
         response = self.chain.invoke({"question": question})
         content = str(response.content)
