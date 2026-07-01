@@ -17,10 +17,10 @@ def main():
     # 2. Pipeline com tratamento de erro global
     try:
         logging.info("Iniciando fase de Crawling...")
-        execute_all_crawlers() 
+        #execute_all_crawlers() 
         
         logging.info("Iniciando conversão para Markdown...")
-        ConversorRAGMarkdown(data_dir).processar_datalake()
+        #ConversorRAGMarkdown(data_dir).processar_datalake()
         
         logging.info("Iniciando ingestão no banco vetorial...")
         ingest_pipeline(data_dir)
@@ -29,9 +29,6 @@ def main():
         
     except Exception as e:
         logging.error(f"Falha fatal no pipeline: {e}", exc_info=True)
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":

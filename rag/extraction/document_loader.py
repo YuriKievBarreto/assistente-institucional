@@ -104,7 +104,3 @@ class ConversorRAGMarkdown:
                 else:
                     print(f"  -> ❌ Falha na extração ou arquivo vazio.")
 
-# Para executar:
-if __name__ == "__main__":
-    extrator = ConversorRAGMarkdown("pdfs_ifpb_completos/editais/invacao")
-    extrator.processar_datalake()
