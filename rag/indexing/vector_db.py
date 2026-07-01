@@ -1,6 +1,6 @@
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
-from embbedings import embeddings
+from rag.indexing.embbedings import embeddings
 from qdrant_client.http.models import VectorParams, Distance
 
 vector_db_client = QdrantClient(url="http://localhost:6333")
