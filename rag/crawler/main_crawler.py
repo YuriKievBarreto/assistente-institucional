@@ -1,6 +1,6 @@
-from crawler_editais import baixar_editais
-from crawler_resolucoes import IFPBCrawlerUnificado
-from crawler_info_geral import baixar_da_web
+from rag.crawler.crawler_editais import baixar_editais
+from rag.crawler.crawler_resolucoes import IFPBCrawlerUnificado
+from rag.crawler.crawler_info_geral import baixar_da_web
 
 
 import logging
@@ -108,5 +108,5 @@ def execute_all_crawlers():
     
 
 
-execute_all_crawlers()
+
 
