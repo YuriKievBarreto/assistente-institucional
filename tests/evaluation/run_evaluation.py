@@ -11,11 +11,14 @@ import ast
 # esse import e redireciona pro pacote novo, sem precisar mexer em versões.
 # ---------------------------------------------------------------------------
 from langchain_google_vertexai import ChatVertexAI
-from bs4 import BeautifulSoup
 
 fake_module = types.ModuleType("langchain_community.chat_models.vertexai")
 fake_module.ChatVertexAI = ChatVertexAI  # type: ignore
 sys.modules["langchain_community.chat_models.vertexai"] = fake_module
+
+
+from bs4 import BeautifulSoup
+
 
 import pandas as pd
 from langchain_groq import ChatGroq

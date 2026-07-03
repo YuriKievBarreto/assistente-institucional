@@ -7,7 +7,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
+tests/evaluation/*.csv
 reunir_pdfs.py
 # C extensions
 *.so
