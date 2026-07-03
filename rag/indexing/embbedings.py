@@ -20,10 +20,14 @@ BEDROCK_EMBEDDING_MODEL_ID = os.getenv("BEDROCK_EMBEDDING_MODEL_ID")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 
-embeddings = BedrockEmbeddings(model_id=BEDROCK_EMBEDDING_MODEL_ID, client=bedrock_client, dimensions=1024)
+
+
+bedrock_embeddings = BedrockEmbeddings(model_id=BEDROCK_EMBEDDING_MODEL_ID, client=bedrock_client, dimensions=1024)
 
 hf_embeddings = HuggingFaceEndpointEmbeddings(
     model=HUGGINGFACE_EMBEDDING_MODEL_ID,
     huggingfacehub_api_token=HF_TOKEN
 )
+
+embeddings = hf_embeddings
 
