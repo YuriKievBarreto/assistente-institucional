@@ -39,8 +39,8 @@ from langchain_aws import ChatBedrock
 # ---------------------------------------------------------------------------
 # Caminhos
 # ---------------------------------------------------------------------------
-DATASET_PATH = "tests/evaluation/dataset_ragas_editais_ifpb.csv"
-CHECKPOINT_PATH = "tests/evaluation/dataset_com_respostas.csv"
+DATASET_PATH = "tests/evaluation/datasets/dataset_ragas_ifpb.csv"
+CHECKPOINT_PATH = "tests/evaluation/datasets/dataset_com_respostas.csv"
 RESULTS_PATH = "tests/evaluation/results.csv"
 
 
