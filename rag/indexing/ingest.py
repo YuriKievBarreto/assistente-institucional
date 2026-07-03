@@ -6,10 +6,41 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 
 from rag.chunking.chunking import RAGChunking
 from rag.indexing.embbedings import embeddings
-
+import uuid
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import VectorParams, Distance
-from langchain_qdrant import QdrantVectorStore
+from qdrant_client.models import PointStruct, SparseVector
+from qdrant_client.http.models import VectorParams, Distance, SparseVectorParams
+
+from fastembed import SparseTextEmbedding
+
+sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+
+
+
+def enviar_batch(client: QdrantClient, collection_name: str, chunks: list) -> None:
+    texts = [chunk.page_content for chunk in chunks]
+
+    dense_vectors = embeddings.embed_documents(texts)
+    sparse_vectors = list(sparse_model.embed(texts))
+
+    points = []
+    for chunk, dense, sparse in zip(chunks, dense_vectors, sparse_vectors):
+        points.append(PointStruct(
+            id=str(uuid.uuid4()),
+            vector={
+                "dense": dense,
+                "sparse": SparseVector(
+                    indices=sparse.indices.tolist(),
+                    values=sparse.values.tolist()
+                )
+            },
+            payload={
+                "page_content": chunk.page_content,
+                **chunk.metadata
+            }
+        ))
+
+    client.upsert(collection_name=collection_name, points=points)
 
 
 def ingest_pipeline(DATALAKE_DIR: str):
@@ -19,24 +50,25 @@ def ingest_pipeline(DATALAKE_DIR: str):
     batch_buffer = []
 
     client = QdrantClient(url="http://localhost:6333")
-
     collection_name = "ifpb"
 
-    # Cria a collection apenas se ela não existir
-    if not client.collection_exists(collection_name):
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(
+    if client.collection_exists(collection_name):
+        client.delete_collection(collection_name)
+        print("Coleção existente removida.")
+
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config={
+            "dense": VectorParams(
                 size=1024,
                 distance=Distance.COSINE,
-            ),
-        )
-
-    vectorstore = QdrantVectorStore(
-        client=client,
-        collection_name=collection_name,
-        embedding=embeddings,
+            )
+        },
+        sparse_vectors_config={
+            "sparse": SparseVectorParams()
+        }
     )
+    print("Coleção criada com suporte a vetores densos e esparsos.")
 
     for root, _, files in os.walk(DATALAKE_DIR):
         for file in files:
@@ -56,20 +88,15 @@ def ingest_pipeline(DATALAKE_DIR: str):
             chunks = list(chunker.chunk_content(caminho_md, meta))
             batch_buffer.extend(chunks)
 
-            # Envia exatamente lotes de 100
             while len(batch_buffer) >= batch_size:
                 lote = batch_buffer[:batch_size]
-
                 print(f"Enviando lote de {len(lote)} chunks ao Qdrant...")
-
-                vectorstore.add_documents(lote)
-
+                enviar_batch(client, collection_name, lote)
                 batch_buffer = batch_buffer[batch_size:]
 
-    # Envia o restante
     if batch_buffer:
         print(f"Enviando lote final de {len(batch_buffer)} chunks...")
-        vectorstore.add_documents(batch_buffer)
+        enviar_batch(client, collection_name, batch_buffer)
 
     print("Pipeline finalizado com sucesso.")
 
