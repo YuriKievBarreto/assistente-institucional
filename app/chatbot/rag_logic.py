@@ -17,7 +17,12 @@ class RAGRetriever:
         )
     
     def retrieve(self, query: str):
-        return self.retriever.invoke(query)
+       docs = self.retriever.invoke(query)
+       return [
+           doc for doc in docs
+           if "sumário" not in doc.metadata.get("Capitulo", "").lower()
+           and "sumario" not in doc.metadata.get("Capitulo", "").lower()
+       ]
     
     def format_context(self, docs: list[Document]) -> str:
         print(self.format_context_with_metadata(docs))
