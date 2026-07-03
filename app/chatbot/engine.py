@@ -19,7 +19,7 @@ class ChatEngine:
     ):
         self.retriever = rag_retriever
         self.memory = memory_manager
-        self.llm = ChatGroq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"), temperature=0.1)
+        self.llm = ChatGroq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"), temperature=0)
         self.chain = self.build_chain()
 
     def build_chain(self):

@@ -37,7 +37,8 @@ hf_embeddings = HuggingFaceEndpointEmbeddings(
 vector_store = QdrantVectorStore(
     client=qdrant_client,
     collection_name="ifpb",
-    embedding=embeddings
+    embedding=embeddings,
+    vector_name="dense"
 )
 
 

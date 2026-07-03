@@ -10,6 +10,6 @@ class ChatResponse(BaseModel):
 
 
 class RAGConfig(BaseModel):
-    k_documents: int = 4
+    k_documents: int = 5
     model_name: str =  "llama-3.1-8b-instant"
     score_threshold: float  = 0.7
