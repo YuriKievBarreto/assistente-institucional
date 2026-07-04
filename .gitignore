@@ -10,10 +10,12 @@ __pycache__/
 tests/evaluation/*.csv
 reunir_pdfs.py
 tests/evaluation/datasets
+tests/evaluation/nova_lite_as_judge/
+tests/evaluation/nova_micro_as_judge/
 # C extensions
-evaluation/generate_dataset.py
+tests/evaluation/generate_dataset.py
 *.so
-
+*.ipynb
 # Distribution / packaging
 .Python
 build/
