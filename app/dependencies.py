@@ -11,7 +11,8 @@ from app.chatbot.memory import MemoryManager
 from app.repositories import user_repository
 from sqlmodel import Session
 from app.database.qdrant_vector_store import vector_store
-
+from app.chatbot.models import RAGConfig
+from langchain_aws import ChatBedrock
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 oauth_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -74,3 +75,5 @@ def get_current_user_optional( token: str | None = Depends(oauth_scheme_optional
             return get_current_user(token, session)
         except HTTPException:
             return None
+        
+

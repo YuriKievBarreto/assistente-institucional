@@ -4,7 +4,7 @@ from app.chatbot.memory import MemoryManager
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
-
+from app.chatbot.llm import get_bedrock_llm, get_groq_llm
 import os
 from dotenv import load_dotenv
 
@@ -19,32 +19,36 @@ class ChatEngine:
     ):
         self.retriever = rag_retriever
         self.memory = memory_manager
-        self.llm = ChatGroq(model="llama-3.1-8b-instant", api_key=os.getenv("GROQ_API_KEY"), temperature=0)
+        self.llm = get_bedrock_llm(self.retriever.config)
         self.chain = self.build_chain()
 
     def build_chain(self):
         prompt = ChatPromptTemplate.from_messages([
-        ("system", """
-            Você é o assistente institucional do IFPB — Campus Cajazeiras.
-            Sua personalidade é prestativa e bem-humorada.
+        ("system",  """
+                Você é o assistente institucional do IFPB — Campus Cajazeiras.
+                Sua personalidade é prestativa e bem-humorada.
 
-            FORMATO:
-            - Responda com HTML puro: <p>, <strong>, <ul>, <li>, <br>
-            - Nunca use markdown
+                FORMATO:
+                - Responda com HTML puro: <p>, <strong>, <ul>, <li>, <br>
+                - Nunca use markdown
 
-            RESPOSTA:
-            - Seja direto: responda a pergunta em no máximo 2 frases antes de qualquer detalhe adicional
-            - Use listas apenas quando houver múltiplos itens a enumerar
-            - Não adicione parágrafos de aviso ou sugestões não solicitadas
+                RESPOSTA:
+                - Seja direto e objetivo
+                - Use listas apenas quando houver múltiplos itens a enumerar
 
-            CONTEÚDO:
-            - Responda apenas com base no contexto fornecido
-            - Se não encontrar a informação, diga apenas: "Não encontrei essa informação nos documentos disponíveis."
-            - Cite a fonte e URL ao final, após a resposta principal
+                CONTEÚDO:
+                - Priorize o contexto fornecido para responder
+                - Utilize apenas as partes do contexto que forem diretamente relevantes para a pergunta
+                - Ignore informações irrelevantes no contexto
+                - Se o contexto não for suficiente para uma resposta completa, responda apenas com o que for possível inferir dele
+                - Se o contexto tiver informação parcial, responda com o que for possível. 
+                Só recuse se o contexto for completamente irrelevante para a pergunta."
 
-            Contexto:
-            {context}
-                    """),
+                Contexto:
+                {context}
+
+                Ao final da resposta, inclua a fonte e URL presentes no contexto.
+                """),
                     MessagesPlaceholder("chat_history"),
                     ("human", "{question}")
                 ])

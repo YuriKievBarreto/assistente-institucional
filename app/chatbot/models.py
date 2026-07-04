@@ -1,5 +1,11 @@
 from pydantic import BaseModel
+from langchain_groq import ChatGroq
+from langchain_aws import ChatBedrock
 from typing import List, Optional
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class ChatInput(BaseModel):
     query: str
@@ -13,3 +19,15 @@ class RAGConfig(BaseModel):
     k_documents: int = 5
     model_name: str =  "llama-3.1-8b-instant"
     score_threshold: float  = 0.7
+    groq_models: dict ={
+        "llama_versatille": "llama-3.3-70b-versatile",
+        "llama_instant": "llama-3.1-8b-instant"
+        
+    }
+    bedrock_models: dict = {
+        "amazon_nova_lite": "amazon.nova-lite-v1:0",
+        "claude_haiku_4-5": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "amazon_nova_micro": "amazon.nova-micro-v1:0",
+        "llama_scout_4": "us.meta.llama4-scout-17b-instruct-v1:0",
+
+    } 
