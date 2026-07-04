@@ -36,6 +36,7 @@ Framework de avaliação: RAGAS
 ---
 
 # Experimento 1
+**Data:** 03/07/2026
 
 ## Hybrid Search + melhoria no Chunking
 
@@ -71,13 +72,13 @@ Utilizar um modelo de embeddings melhor para português deve aumentar a recupera
 
 ### Alterações
 
-- Avaliação com RAGAS usando três LLMs juízes diferentes: Amazon Nova Lite, Claude Haiku 4.5, Llama 4 Scout
+- Avaliação com RAGAS usando três modelos diferentes pra responder a perguntas: Amazon Nova Lite, Claude Haiku 4.5, Llama 4 Scout
 - Mudança do modelo de julgamento anterior: Amazon Nova Micro → Amazon Nova Lite
 - Adição da métrica **Faithfulness** (não avaliada no experimento anterior)
 
 ### Hipótese
 
-Melhorar o parâmetro **Answer Relevancy** após o uso de um modelo de maior porte tanto na entrada (sistema RAG) quanto na avaliação (LLM Judge).
+Melhorar o parâmetro **Answer Relevancy** após o uso de um modelo de maior porte tanto na entrada (sistema RAG) quanto na avaliação (Judge LLM com RAGAS)
 
 ### Resultados — Judge: Amazon Nova Micro
 
@@ -103,6 +104,8 @@ Melhorar o parâmetro **Answer Relevancy** após o uso de um modelo de maior por
 O modelo **Claude Haiku 4.5** apresenta o maior **faithfulness** entre os três avaliados (0,59 com Nova Micro / 0,59 com Nova Lite), confirmando que o modelo é mais criterioso ao basear respostas no contexto — inventa menos. No entanto, esse comportamento tem um custo direto no **answer_relevancy** (0,34), o mais baixo dos três modelos.
 
 
+Os resultados sugerem que o **Amazon Nova Lite** adota um critério de avaliação mais rigoroso para algumas métricas, especialmente Context Precision, atribuindo notas sistematicamente inferiores às obtidas **pelo Amazon Nova Micro**. Esse comportamento pode ser desejável em cenários nos quais se pretende reduzir avaliações excessivamente otimistas e adotar um processo de validação mais conservador.
+
 ## análise no documento de resultados do claude haiku 4.5
 A análise por caso revela que os 9 zeros de `answer_relevancy` correspondem a perguntas onde o Haiku recusou responder mesmo com contexto parcialmente disponível — especialmente perguntas sobre tabelas grandes (Anexo I do PROMIFPB, resultado IVS) cujos dados foram truncados pelo chunking. Nesses casos o `faithfulness` é alto (1.0) porque o modelo não inventou nada, mas a resposta vazia penaliza a relevância.
 
@@ -113,7 +116,6 @@ A tensão entre `faithfulness` e `answer_relevancy` é esperada em sistemas com 
 ### Observações
 - Valores "NA" na coluna baseline para Faithfulness: métrica incluída pela primeira vez nesta rodada, sem comparação anterior.
 - O judge Amazon Nova Lite produziu scores de `context_precision` sistematicamente mais baixos (~22%) que o Nova Micro para todos os modelos avaliados, sugerindo que o Nova Lite é mais rigoroso na avaliação de relevância dos chunks recuperados.
-- A limitação do Groq (`n=1`) impede avaliação com múltiplas gerações para `answer_relevancy`, o que pode subestimar esse valor em até ±0,10.
 - Os zeros concentrados em perguntas sobre tabelas confirmam que o chunking é o próximo passo crítico — não o modelo nem o retriever.
 
 
