@@ -60,9 +60,6 @@ O Hybrid Search aumentou significativamente a qualidade da recuperação.
 
 O maior ganho ocorreu em **Answer Relevancy**, indicando que a melhoria na recuperação teve impacto direto na resposta final.
 
-### Próxima hipótese
-
-Utilizar um modelo de embeddings melhor para português deve aumentar a recuperação semântica.
 
 ---
 
@@ -119,4 +116,42 @@ A tensão entre `faithfulness` e `answer_relevancy` é esperada em sistemas com 
 - Os zeros concentrados em perguntas sobre tabelas confirmam que o chunking é o próximo passo crítico — não o modelo nem o retriever.
 
 
+---
+
+
+# Experimento 3
+**Data:** 04/07/2026
+
+## Multiquery + Reranker
+
+## Hipótese:
+Esperada **melhora no context recall** através do multiquery -  perguntas com fraseamento diferente do documento original passam a ter mais chance de recuperar o chunk certo
+
+Esperada **melhora context precision** - Reranker filtra os candidatos trazidos pelo multiquery, removendo ruído que a busca vetorial/sparse trouxe só por similaridade superficial
+
+### Alterações
+
+- adicionado multiquery retrieval(k = 3)
+- adicionado reranker(top_k = 5)
+- 
+
+### Resultados do Claude Haiku 4.5 usando amazon nova lite como judge
+## retornando 10 documentos por query x 4 vindos da multiquery = 40 -> *reranker seleciona top 5*
+
+
+| Métrica | Antes | Depois | Δ |
+|---|---:|---:|---:|
+| Context Precision | 0,5776 | 0,6112 | **+5,8%** |
+| Context Recall | 0,7059 | 0,8039 | **+13,9%** |
+| Answer Relevancy | 0,2900 | 0,3135 | **+8,1%** |
+| Faithfulness | 0,5861 | 0,5468 | **-6,7%** |
+
+### Análise
+- **Hipótese confirmada para Context Recall e Context Precision**: ambas as métricas melhoraram, com destaque para o ganho de recall (+13,9%), o maior entre todas as métricas avaliadas.
+- 
+- **Bug identificado e corrigido durante o experimento**: a implementação inicial do multiquery não incluía a pergunta original do usuário na busca — apenas as 3 variações geradas pelo LLM eram usadas para recuperação. Isso causou uma **piora** temporária nas métricas em uma rodada intermediária (Context Precision: -1,6%, Context Recall: -6,2%, Faithfulness: -10,4% vs. baseline). Após corrigir para incluir a query original no conjunto de buscas (`queries = [query] + variacoes`), os resultados acima foram obtidos, confirmando que a query original é uma fonte de recall mais confiável que reformulações isoladas do LLM.
+- 
+- **Answer Relevancy melhorou (+8,1%)**, indicando que o contexto mais preciso recuperado contribuiu, ainda que indiretamente, para respostas mais alinhadas à pergunta.
+- 
+- **Faithfulness piorou (-6,7%) mesmo com ganhos de recall/precision**. Isso é consistente com uma limitação observada em experimentos anteriores: o Ragas decompõe a resposta em múltiplas afirmações, e frases explicativas geradas pelo RAG (ex: "isso significa que...") são frequentemente classificadas como não-atribuíveis ao contexto, mesmo quando semanticamente corretas. Esse comportamento não está diretamente ligado à qualidade do retrieval, e sim ao estilo de resposta do modelo gerador — sugerindo que ganhos futuros em Faithfulness dependem mais de ajuste de prompt (respostas mais diretas, menos elaborativas) do que de mudanças no pipeline de recuperação
 

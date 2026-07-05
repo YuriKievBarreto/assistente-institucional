@@ -80,7 +80,7 @@ class RAGRetriever:
             formatted.append(f"Context:\n{content}\n\nMetadata:\n{meta_str}")
         return "\n\n---\n\n".join(formatted)
     
-    def generate_queries(self, query: str, k: int = 4):
+    def generate_queries(self, query: str, k: int = 3):
         prompt = f"""
         Você é um especialista em busca de informações em editais acadêmicos.
 
@@ -105,11 +105,12 @@ class RAGRetriever:
         structured_llm = self.llm.with_structured_output(QueryList, method="json_mode")
         response = structured_llm.invoke(prompt)
 
-        return response.queries[:3] 
+        return response.queries[:k] 
     
 
     def _multi_query_retrieve(self, query: str):
         queries = self.generate_queries(query)
+        queries = [query] + queries
         all_docs = []
 
         for q in queries:
@@ -142,6 +143,8 @@ class RAGRetriever:
             return []
         
         if self.reranker is None:
+            print("reranker desativado")
+            
             return docs[:top_k]
 
         pairs = [(query, doc.page_content) for doc in docs]
@@ -154,6 +157,5 @@ class RAGRetriever:
         )
 
         print("reranquamento feito, documentos: \n")
-        for doc in docs[:5]:
-            print(doc)
+    
         return [doc for doc, score in ranked[:top_k]]

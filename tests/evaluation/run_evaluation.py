@@ -9,7 +9,7 @@ import json
 from dotenv import load_dotenv
 
 load_dotenv()
-
+from app.chatbot.models import RAGConfig
 # ---------------------------------------------------------------------------
 # Shim: o Ragas 0.4.3 ainda tenta importar langchain_community.chat_models.vertexai,
 # que foi removido do langchain-community a partir da 0.4.x. Isso intercepta
@@ -162,8 +162,8 @@ RagasOutputParser.parse_output_string = _patched_parse_output_string
 # Caminhos
 # ---------------------------------------------------------------------------
 DATASET_PATH = "tests/evaluation/datasets/dataset_ragas_ifpb.csv"
-CHECKPOINT_PATH = "tests/evaluation/datasets/dataset_com_respostas_amazonNovaLite_v2.csv"
-RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/results_nova_lite.csv"
+CHECKPOINT_PATH = "tests/evaluation/datasets/dataset_com_respostas_haiku_4-5-multi-query_rerank_k10.csv"
+RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/results_haiku_4-5-multi-query_rerank_k10.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ def gerar_respostas() -> pd.DataFrame:
 
     from app.chatbot.memory import MemoryManager
     from app.chatbot.engine import ChatEngine
-    from app.dependencies import get_retriever
+    from app.dependencies import get_retriever, get_config
 
     print(">> Nenhum checkpoint encontrado. Carregando dataset original...")
     df = pd.read_csv(DATASET_PATH)
@@ -234,7 +234,7 @@ def gerar_respostas() -> pd.DataFrame:
             try:
                 session_id = f"ragas-eval-{uuid.uuid4()}"
                 memory = MemoryManager(session_id=session_id)
-                chat_engine = ChatEngine(rag_retriever=retriever, memory_manager=memory)
+                chat_engine = ChatEngine(memory, get_config(), retriever)
 
                 docs = retriever.retrieve(question)
                 doc_texts = [doc.page_content for doc in docs]
