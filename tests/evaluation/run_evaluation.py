@@ -7,6 +7,7 @@ import ast
 import re
 import json
 from dotenv import load_dotenv
+from langchain_core.documents import Document
 
 load_dotenv()
 from app.chatbot.models import RAGConfig
@@ -162,8 +163,8 @@ RagasOutputParser.parse_output_string = _patched_parse_output_string
 # Caminhos
 # ---------------------------------------------------------------------------
 DATASET_PATH = "tests/evaluation/datasets/dataset_ragas_ifpb.csv"
-CHECKPOINT_PATH = "tests/evaluation/datasets/dataset_com_respostas_haiku_4-5-multi-query_rerank_k10.csv"
-RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/results_haiku_4-5-multi-query_rerank_k10.csv"
+CHECKPOINT_PATH = "tests/evaluation/datasets/CORRETOdataset_com_respostas_haiku_4-5-multi-query_rerank_modelo_FORTE_k10.csv"
+RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/CORRETOresults_haiku_4-5-multi-query_rerank_modelo_FORTE_k10_FAITHFULNESS.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +202,50 @@ class DebugCallback(BaseCallbackHandler):
 # ---------------------------------------------------------------------------
 # FASE 1 — Retrieval + geração de respostas (mantida igual ao original)
 # ---------------------------------------------------------------------------
+
+
+def format_context_for_evaluation(docs: list[Document]) -> list[Document]:
+        formatted = []
+
+        allowed_metadata = [
+            "titulo_documento",
+            "Capitulo",
+            "descricao",
+            "ano",
+            "data_publicacao",
+            "url_pagina_referencia",
+            "url_arquivo_direto"
+        ]
+
+        for doc in docs:
+            content = doc.page_content
+            meta = doc.metadata or {}
+
+            meta_lines = [
+                f"{key}: {meta[key]}"
+                for key in allowed_metadata
+                if key in meta
+            ]
+
+            meta_str = "\n".join(meta_lines)
+
+            formatted.append(
+                Document(
+                    page_content=
+                    f"Metadata:\n{meta_str}\n\n"
+                    f"Context:\n{content}"
+                )
+                
+            )
+
+        print("aaaaaaaaaaaaaaaaaaaaaa")
+        print(formatted[0])
+
+        
+        print("formatando....")
+
+        return formatted
+
 def limpar_html(texto: str) -> str:
     return BeautifulSoup(texto, "html.parser").get_text(separator=" ").strip()
 
@@ -236,8 +281,9 @@ def gerar_respostas() -> pd.DataFrame:
                 memory = MemoryManager(session_id=session_id)
                 chat_engine = ChatEngine(memory, get_config(), retriever)
 
-                docs = retriever.retrieve(question)
-                doc_texts = [doc.page_content for doc in docs]
+                docs = retriever._multi_query_retrieve(question)
+                formatted_docs = format_context_for_evaluation(docs)
+                doc_texts = [doc.page_content for doc in formatted_docs]
                 answer = limpar_html(chat_engine.chat(question))
 
                 contexts.append(doc_texts)
@@ -312,7 +358,7 @@ def rodar_avaliacao(df: pd.DataFrame, debug: bool = False, limitar_n: int = None
 
     result = evaluate(
         eval_dataset,
-        metrics=[context_precision, context_recall, answer_relevancy, faithfulness],
+        metrics=[faithfulness],
         llm=evaluator_llm,
         embeddings=embeddings,
         run_config=RunConfig(

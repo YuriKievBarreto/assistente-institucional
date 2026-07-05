@@ -31,7 +31,6 @@ Framework de avaliação: RAGAS
 ### Observações
 
 - A recuperação frequentemente não encontra o artigo correto.
-- Chunks muito grandes reduzem a qualidade das respostas. ##mexer nisso
 
 ---
 
@@ -43,8 +42,8 @@ Framework de avaliação: RAGAS
 ### Alterações
 
 - Adicionado BM25
-- Hybrid Search (0.6 BM25 / 0.4 Dense) ##mexer nisso
-- Artigos nunca são divididos entre chunks
+- Hybrid Search
+- aumento no chunk size para 800 com 100 de overlap
 
 ### Resultados usando amazon nova micro como judge
 
@@ -119,39 +118,57 @@ A tensão entre `faithfulness` e `answer_relevancy` é esperada em sistemas com 
 ---
 
 
-# Experimento 3
+# Experimento 3 (Corrigido)
 **Data:** 04/07/2026
 
 ## Multiquery + Reranker
 
-## Hipótese:
-Esperada **melhora no context recall** através do multiquery -  perguntas com fraseamento diferente do documento original passam a ter mais chance de recuperar o chunk certo
-
-Esperada **melhora context precision** - Reranker filtra os candidatos trazidos pelo multiquery, removendo ruído que a busca vetorial/sparse trouxe só por similaridade superficial
+### Hipótese
+- Multiquery → melhora **context recall** (mais chances de recuperar o chunk certo com fraseamentos diferentes).
+- Reranker → melhora **context precision** (filtra ruído trazido pela busca vetorial/sparse).
+- Como consequência, esperados também aumentos em **Answer Relevancy** e **Faithfulness**: no Exp. 2, respostas vazias/recusas vinham de contexto truncado (tabelas); recuperação melhor deve reduzir recusas e invenções.
 
 ### Alterações
+- Adicionado multiquery retrieval (k = 3)
+- Adicionado reranker (top_k = 5)
+- Mudança no top_k de documentos retornados por query individual: 5 → 10
 
-- adicionado multiquery retrieval(k = 3)
-- adicionado reranker(top_k = 5)
-- 
+### Configuração de recuperação
+Retornando 10 documentos por query × 4 (query original + multiquery) = 40 candidatos → **reranker seleciona os top 5**
 
-### Resultados do Claude Haiku 4.5 usando amazon nova lite como judge
-## retornando 10 documentos por query x 4 vindos da multiquery = 40 -> *reranker seleciona top 5*
+---
 
+### Resultados do Claude Haiku 4.5, usando Amazon Nova Lite como judge
+
+#### Reranker: `ms-marco-MiniLM-L-6-v2`
 
 | Métrica | Antes | Depois | Δ |
 |---|---:|---:|---:|
-| Context Precision | 0,5776 | 0,6112 | **+5,8%** |
-| Context Recall | 0,7059 | 0,8039 | **+13,9%** |
-| Answer Relevancy | 0,2900 | 0,3135 | **+8,1%** |
-| Faithfulness | 0,5861 | 0,5468 | **-6,7%** |
+| Context Precision | 0,5776 | 0,5107 | **-11,58%** |
+| Context Recall | 0,7059 | 0,6617 | **-6,26%** |
+| Answer Relevancy | 0,2900 | 0,3627 | **+25,07%** |
+| Faithfulness | 0,3439 | 0,8924 | **+159,49%** |
+
+#### Reranker: `BAAI/bge-reranker-v2-m3`
+
+| Métrica | Antes | Depois | Δ |
+|---|---:|---:|---:|
+| Context Precision | 0,5776 | 0,7952 | **+37,67%** |
+| Context Recall | 0,7059 | 0,8774 | **+24,30%** |
+| Answer Relevancy | 0,2900 | 0,4274 | **+47,38%** |
+| Faithfulness | 0,3439 | 0,8611 | **+150,39%** |
+
+---
 
 ### Análise
-- **Hipótese confirmada para Context Recall e Context Precision**: ambas as métricas melhoraram, com destaque para o ganho de recall (+13,9%), o maior entre todas as métricas avaliadas.
-- 
-- **Bug identificado e corrigido durante o experimento**: a implementação inicial do multiquery não incluía a pergunta original do usuário na busca — apenas as 3 variações geradas pelo LLM eram usadas para recuperação. Isso causou uma **piora** temporária nas métricas em uma rodada intermediária (Context Precision: -1,6%, Context Recall: -6,2%, Faithfulness: -10,4% vs. baseline). Após corrigir para incluir a query original no conjunto de buscas (`queries = [query] + variacoes`), os resultados acima foram obtidos, confirmando que a query original é uma fonte de recall mais confiável que reformulações isoladas do LLM.
-- 
-- **Answer Relevancy melhorou (+8,1%)**, indicando que o contexto mais preciso recuperado contribuiu, ainda que indiretamente, para respostas mais alinhadas à pergunta.
-- 
-- **Faithfulness piorou (-6,7%) mesmo com ganhos de recall/precision**. Isso é consistente com uma limitação observada em experimentos anteriores: o Ragas decompõe a resposta em múltiplas afirmações, e frases explicativas geradas pelo RAG (ex: "isso significa que...") são frequentemente classificadas como não-atribuíveis ao contexto, mesmo quando semanticamente corretas. Esse comportamento não está diretamente ligado à qualidade do retrieval, e sim ao estilo de resposta do modelo gerador — sugerindo que ganhos futuros em Faithfulness dependem mais de ajuste de prompt (respostas mais diretas, menos elaborativas) do que de mudanças no pipeline de recuperação
+
+- **A hipótese se confirma de forma consistente apenas com o `BAAI/bge-reranker-v2-m3`**, que melhorou as quatro métricas simultaneamente: Context Precision (+37,67%), Context Recall (+24,30%), Answer Relevancy (+47,38%) e Faithfulness (+150,39%). Isso é coerente com a hipótese original — o multiquery amplia a cobertura de recuperação e o reranker, sendo mais robusto, consegue filtrar bem o ruído entre os 40 candidatos.
+
+- **O `ms-marco-MiniLM-L-6-v2` contraria a hipótese em duas das quatro métricas.** Context Precision (-11,58%) e Context Recall (-6,26%) pioraram em relação à baseline, mesmo com mais candidatos disponíveis para o rerank (40 documentos). Isso sugere que esse reranker específico não está ordenando bem os candidatos vindos do multiquery — provavelmente por ser um modelo mais leve e genérico, menos adequado ao domínio institucional/normativo dos editais, enquanto o BGE-reranker-v2-m3 é maior e treinado em conjuntos mais diversos.
+
+- **O salto em Faithfulness é o resultado mais chamativo do experimento**, em ambos os rerankers (+159,49% e +150,39%). Isso indica que ter candidatos filtrados por relevância — mesmo quando a precisão piora, como no caso do MiniLM — reduz fortemente a tendência do modelo de "inventar" respostas, já que ele está trabalhando com um conjunto de contexto mais bem selecionado do que a busca vetorial/BM25 bruta trazia sozinha.
+
+
+- **Próximo passo:** fixar BGE-reranker-v2-m3 e testar parent-child chunking (gargalo já identificado no Exp. 2).
+
 
