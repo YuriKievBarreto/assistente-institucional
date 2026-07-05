@@ -10,6 +10,10 @@ from langchain_classic.retrievers import MultiQueryRetriever
 from langchain_core.language_models.chat_models import BaseChatModel
 from app.chatbot.models import QueryList
 from sentence_transformers import CrossEncoder
+from huggingface_hub import InferenceClient
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 class RAGRetriever:
     def __init__(self, vector_store, config: RAGConfig, llm: BaseChatModel):
@@ -20,8 +24,14 @@ class RAGRetriever:
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
         self.llm = llm
         self.reranker = None
+        self.hf_client = InferenceClient(token=os.getenv("HF_TOKEN"), provider="hf-inference")
         if config.use_reranker:
-            self.reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
+            self.reranker_pesado = CrossEncoder("BAAI/bge-reranker-v2-m3", device="cpu", max_length=390)
+            self.reranker_leve = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
+            self.reranker = self.reranker_pesado
+           
+            
+
 
     
     def retrieve(self, query: str) -> list[Document]:
@@ -73,12 +83,43 @@ class RAGRetriever:
     
     def format_context_with_metadata(self, docs: list[Document]) -> str:
         formatted = []
+
+        allowed_metadata = [
+            "titulo_documento",
+            "Capitulo",
+            "descricao",
+            "ano",
+            "data_publicacao",
+            "url_pagina_referencia",
+            "url_arquivo_direto"
+        ]
+
         for doc in docs:
             content = doc.page_content
             meta = doc.metadata or {}
-            meta_str = ", ".join(f"{k}: {v}" for k, v in meta.items())
-            formatted.append(f"Context:\n{content}\n\nMetadata:\n{meta_str}")
+
+            meta_lines = [
+                f"{key}: {meta[key]}"
+                for key in allowed_metadata
+                if key in meta
+            ]
+
+            meta_str = "\n".join(meta_lines)
+
+            formatted.append(
+                f"Metadata:\n{meta_str}\n\n"
+                f"Context:\n{content}"
+            )
+
+        
+        print("formatando....")
+
         return "\n\n---\n\n".join(formatted)
+    
+
+    
+    
+
     
     def generate_queries(self, query: str, k: int = 3):
         prompt = f"""
@@ -108,7 +149,7 @@ class RAGRetriever:
         return response.queries[:k] 
     
 
-    def _multi_query_retrieve(self, query: str):
+    def _multi_query_retrieve(self, query: str) -> list[Document]:
         queries = self.generate_queries(query)
         queries = [query] + queries
         all_docs = []
@@ -139,13 +180,17 @@ class RAGRetriever:
 
 
     def rerank(self, query: str, docs: list[Document], top_k: int=5):
+        import huggingface_hub
+        print(huggingface_hub.__version__)
         if not docs:
             return []
         
         if self.reranker is None:
-            print("reranker desativado")
-            
+            print("reranker local desativado")
             return docs[:top_k]
+        
+            
+            
 
         pairs = [(query, doc.page_content) for doc in docs]
         scores = self.reranker.predict(pairs)
@@ -157,5 +202,9 @@ class RAGRetriever:
         )
 
         print("reranquamento feito, documentos: \n")
+
+        for (doc, score) in ranked[:top_k]:
+            print("SCORE DO DOCUMENTO: ", score)
+            print("DOCUMENTO: \n", doc)
     
         return [doc for doc, score in ranked[:top_k]]
