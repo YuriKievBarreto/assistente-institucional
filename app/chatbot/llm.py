@@ -15,6 +15,6 @@ def get_bedrock_llm(config: RAGConfig) -> ChatBedrock:
 
 def get_groq_llm(config: RAGConfig) -> ChatGroq:
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model=config.groq_models["llama_versatille"],
         api_key=os.getenv("GROQ_API_KEY")
     )

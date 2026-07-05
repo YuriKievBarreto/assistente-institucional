@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_aws import ChatBedrock
 from typing import List, Optional
@@ -31,3 +31,6 @@ class RAGConfig(BaseModel):
         "llama_scout_4": "us.meta.llama4-scout-17b-instruct-v1:0",
 
     } 
+
+class QueryList(BaseModel):
+    queries: List[str] = Field(max_items=4)
