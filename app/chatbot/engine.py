@@ -18,18 +18,13 @@ class ChatEngine:
     def __init__(
             self,
             memory_manager: MemoryManager,
-            vector_store: QdrantVectorStore,
-            config: RAGConfig
+            config: RAGConfig,
+            retriever: RAGRetriever
     ):
         self.config = config
-        self.vector_store = vector_store
         self.memory = memory_manager
-        self.llm = get_groq_llm(self.config)
-        self.retriever = RAGRetriever(
-            self.vector_store,
-            self.config,
-            self.llm
-        )
+        self.llm = get_bedrock_llm(self.config)
+        self.retriever = retriever
         
         
         

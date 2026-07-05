@@ -9,6 +9,7 @@ from qdrant_client.models import SparseVector, Prefetch, FusionQuery, Fusion
 from langchain_classic.retrievers import MultiQueryRetriever
 from langchain_core.language_models.chat_models import BaseChatModel
 from app.chatbot.models import QueryList
+from sentence_transformers import CrossEncoder
 
 class RAGRetriever:
     def __init__(self, vector_store, config: RAGConfig, llm: BaseChatModel):
@@ -18,6 +19,9 @@ class RAGRetriever:
         self.collection_name: str = vector_store.collection_name
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
         self.llm = llm
+        self.reranker = None
+        if config.use_reranker:
+            self.reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
 
     
     def retrieve(self, query: str) -> list[Document]:
@@ -98,7 +102,7 @@ class RAGRetriever:
         Retorne uma lista com uma query por linha.
         """
 
-        structured_llm = self.llm.with_structured_output(QueryList)
+        structured_llm = self.llm.with_structured_output(QueryList, method="json_mode")
         response = structured_llm.invoke(prompt)
 
         return response.queries[:3] 
@@ -114,8 +118,8 @@ class RAGRetriever:
            all_docs.extend(docs)
 
         
-        return self.deduplicate(all_docs)
-        
+        unique_docs = self.deduplicate(all_docs)
+        return self.rerank(query, unique_docs)
 
     def deduplicate(self, docs):
         print("desduplicando documentos")
@@ -130,5 +134,26 @@ class RAGRetriever:
                 unique_docs.append(doc)
 
         print("quantidade de documentos que restaram: ", len(unique_docs))
-        return unique_docs
+        return  unique_docs
 
+
+    def rerank(self, query: str, docs: list[Document], top_k: int=5):
+        if not docs:
+            return []
+        
+        if self.reranker is None:
+            return docs[:top_k]
+
+        pairs = [(query, doc.page_content) for doc in docs]
+        scores = self.reranker.predict(pairs)
+
+        ranked = sorted(
+            zip(docs, scores),
+            key = lambda pair: pair[1],
+            reverse=True
+        )
+
+        print("reranquamento feito, documentos: \n")
+        for doc in docs[:5]:
+            print(doc)
+        return [doc for doc, score in ranked[:top_k]]

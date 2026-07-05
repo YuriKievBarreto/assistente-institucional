@@ -21,7 +21,8 @@ class RAGConfig(BaseModel):
     score_threshold: float  = 0.7
     groq_models: dict ={
         "llama_versatille": "llama-3.3-70b-versatile",
-        "llama_instant": "llama-3.1-8b-instant"
+        "llama_instant": "llama-3.1-8b-instant",
+        "gpt_oss": "openai/gpt-oss-120b"
         
     }
     bedrock_models: dict = {
@@ -30,7 +31,9 @@ class RAGConfig(BaseModel):
         "amazon_nova_micro": "amazon.nova-micro-v1:0",
         "llama_scout_4": "us.meta.llama4-scout-17b-instruct-v1:0",
 
-    } 
+    }
+
+    use_reranker: bool = True
 
 class QueryList(BaseModel):
     queries: List[str] = Field(max_items=4)
