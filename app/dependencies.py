@@ -23,13 +23,15 @@ def get_session_id(req: ChatInputRequest) -> str:
 def get_config() -> RAGConfig:
     return RAGConfig()
 
-def get_retriever() -> RAGRetriever:
-    return RAGRetriever(vector_store, get_config())
+"""def get_retriever(config: RAGConfig) -> RAGRetriever:
+    return RAGRetriever(vector_store, config)"""
 
 
-def get_engine(session_id: str = Depends(get_session_id)) -> ChatEngine:
+def get_engine(session_id: str = Depends(get_session_id), 
+               config: RAGConfig= Depends(get_config)) -> ChatEngine:
+    
     memory = MemoryManager(session_id=session_id)
-    return ChatEngine(get_retriever(), memory)
+    return ChatEngine(memory, vector_store, config)
 
 
 

@@ -1,10 +1,13 @@
 from langchain_groq import ChatGroq
 from app.chatbot.rag_logic import RAGRetriever
 from app.chatbot.memory import MemoryManager
+from app.chatbot.models import RAGConfig
+from langchain_qdrant import QdrantVectorStore
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from app.chatbot.llm import get_bedrock_llm, get_groq_llm
+from langchain_core.language_models.chat_models import BaseChatModel
 import os
 from dotenv import load_dotenv
 
@@ -14,12 +17,22 @@ from dotenv import load_dotenv
 class ChatEngine:
     def __init__(
             self,
-            rag_retriever: RAGRetriever,
-            memory_manager: MemoryManager
+            memory_manager: MemoryManager,
+            vector_store: QdrantVectorStore,
+            config: RAGConfig
     ):
-        self.retriever = rag_retriever
+        self.config = config
+        self.vector_store = vector_store
         self.memory = memory_manager
-        self.llm = get_bedrock_llm(self.retriever.config)
+        self.llm = get_groq_llm(self.config)
+        self.retriever = RAGRetriever(
+            self.vector_store,
+            self.config,
+            self.llm
+        )
+        
+        
+        
         self.chain = self.build_chain()
 
     def build_chain(self):
@@ -54,7 +67,7 @@ class ChatEngine:
                 ])
 
         def retrieve_and_format(x):
-            docs = self.retriever.retrieve(x["question"])
+            docs = self.retriever._multi_query_retrieve(x["question"])
             return self.retriever.format_context_with_metadata(docs)
 
         chain = (
