@@ -27,7 +27,7 @@ import pandas as pd
 from tqdm import tqdm
 from datasets import Dataset
 from ragas import evaluate, RunConfig
-from ragas.metrics import context_precision, context_recall, answer_relevancy, faithfulness
+from ragas.metrics import context_precision, context_recall, answer_relevancy, faithfulness, answer_correctness
 from ragas.llms import LangchainLLMWrapper
 
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
@@ -162,9 +162,9 @@ RagasOutputParser.parse_output_string = _patched_parse_output_string
 # ---------------------------------------------------------------------------
 # Caminhos
 # ---------------------------------------------------------------------------
-DATASET_PATH = "tests/evaluation/datasets/dataset_ragas_ifpb.csv"
-CHECKPOINT_PATH = "tests/evaluation/datasets/CORRETOdataset_com_respostas_haiku_4-5-multi-query_rerank_modelo_FORTE_k10.csv"
-RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/CORRETOresults_haiku_4-5-multi-query_rerank_modelo_FORTE_k10_FAITHFULNESS.csv"
+DATASET_PATH = "tests/evaluation/datasets/dataset_editais_limpo.csv"
+CHECKPOINT_PATH = "tests/evaluation/datasets/PARENT_CHILD_LIMPO_dataset_haiku_4-5.csv"
+RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/PARENT_CHILD_LIMPO_results_haiku_4-5.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +236,7 @@ def format_context_for_evaluation(docs: list[Document]) -> list[Document]:
                     f"Context:\n{content}"
                 )
                 
+                
             )
 
         print("aaaaaaaaaaaaaaaaaaaaaa")
@@ -283,6 +284,9 @@ def gerar_respostas() -> pd.DataFrame:
 
                 docs = retriever._multi_query_retrieve(question)
                 formatted_docs = format_context_for_evaluation(docs)
+                print("---"*15)
+                print("NA AVALIACAO: \n\n\n", formatted_docs[0])
+                print("---"*15)
                 doc_texts = [doc.page_content for doc in formatted_docs]
                 answer = limpar_html(chat_engine.chat(question))
 
@@ -358,7 +362,11 @@ def rodar_avaliacao(df: pd.DataFrame, debug: bool = False, limitar_n: int = None
 
     result = evaluate(
         eval_dataset,
-        metrics=[faithfulness],
+        metrics=[context_precision, 
+                 context_recall, 
+                 answer_relevancy, 
+                 faithfulness,
+                 answer_correctness],
         llm=evaluator_llm,
         embeddings=embeddings,
         run_config=RunConfig(

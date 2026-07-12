@@ -11,6 +11,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from app.chatbot.models import QueryList
 from sentence_transformers import CrossEncoder
 from huggingface_hub import InferenceClient
+from qdrant_client import QdrantClient
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -26,7 +27,7 @@ class RAGRetriever:
         self.reranker = None
         self.hf_client = InferenceClient(token=os.getenv("HF_TOKEN"), provider="hf-inference")
         if config.use_reranker:
-            self.reranker_pesado = CrossEncoder("BAAI/bge-reranker-v2-m3", device="cpu", max_length=390)
+            self.reranker_pesado = CrossEncoder("BAAI/bge-reranker-v2-m3", device="cpu", max_length=600)
             self.reranker_leve = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
             self.reranker = self.reranker_pesado
            
@@ -111,11 +112,46 @@ class RAGRetriever:
                 f"Context:\n{content}"
             )
 
-        
-        print("formatando....")
+               
+       
 
         return "\n\n---\n\n".join(formatted)
     
+
+
+    def format_for_rerank(self, docs: list[Document]) -> list[Document]:
+        formatted = []
+
+        allowed_metadata = [
+            "titulo_documento",
+            "ano",
+            "data_publicacao"
+        ]
+
+        for doc in docs:
+            content = doc.page_content
+            meta = doc.metadata or {}
+
+            meta_lines = [
+                f"{key}: {meta[key]}"
+                for key in allowed_metadata
+                if key in meta
+            ]
+
+            meta_str = "\n".join(meta_lines)
+            formatted_meta_and_text = self.format_context_with_metadata(docs)
+
+            formatted.append(
+                Document(
+                    page_content= f"Metadata:\n{meta_str}\n\n"
+                f"Context:\n{content}",
+                    metadata=meta
+                
+                )
+            )
+
+        
+        return formatted
 
     
     
@@ -128,8 +164,8 @@ class RAGRetriever:
         Gere {k} variações da pergunta abaixo para melhorar recuperação em um sistema RAG.
 
         Regras:
-        - retorne no máximo 4 itens
-        - nunca gere mais que 4
+        - retorne no máximo {k} itens
+        - nunca gere mais que {k}
         - não explique nada
         - Não responda a pergunta
         - Use linguagem de editais (bolsa, PIBIC, seleção, edital, pesquisa, extensão)
@@ -161,7 +197,15 @@ class RAGRetriever:
 
         
         unique_docs = self.deduplicate(all_docs)
-        return self.rerank(query, unique_docs)
+        top_5_docs = self.rerank(query, unique_docs)
+        
+        unique_docs_and_parents = self.resolve_parents_for_docs(top_5_docs)
+       
+
+
+        print("LISTA IDS")
+
+        return unique_docs_and_parents
 
     def deduplicate(self, docs):
         print("desduplicando documentos")
@@ -180,8 +224,7 @@ class RAGRetriever:
 
 
     def rerank(self, query: str, docs: list[Document], top_k: int=5):
-        import huggingface_hub
-        print(huggingface_hub.__version__)
+        
         if not docs:
             return []
         
@@ -191,20 +234,97 @@ class RAGRetriever:
         
             
             
-
-        pairs = [(query, doc.page_content) for doc in docs]
+        formatted_docs = self.format_for_rerank(docs)
+        
+        pairs = [(query, doc.page_content) for doc in formatted_docs]
         scores = self.reranker.predict(pairs)
 
         ranked = sorted(
-            zip(docs, scores),
+            zip(formatted_docs, scores),
             key = lambda pair: pair[1],
             reverse=True
         )
 
-        print("reranquamento feito, documentos: \n")
-
-        for (doc, score) in ranked[:top_k]:
-            print("SCORE DO DOCUMENTO: ", score)
-            print("DOCUMENTO: \n", doc)
+        print("reranquamento feito")
     
         return [doc for doc, score in ranked[:top_k]]
+    
+
+
+
+    def resolve_parent(self, parent_id: str) -> dict | None:
+        result = self.client.retrieve(
+            collection_name="ifpb_parents",
+            ids=[parent_id],
+            with_payload=True,
+        )
+        if result:
+            return result[0].payload  # devolve o payload inteiro, não só page_content
+        return None
+    
+
+    def resolve_parents_for_docs(self, docs: list[Document]) -> list[Document]:
+        print("\n========== RESOLVENDO PARENTS ==========")
+        print(f"Documentos recebidos: {len(docs)}")
+
+        standalone_docs = []
+        parent_ids = []
+
+        seen_parent_ids = set()
+
+        for i, doc in enumerate(docs, start=1):
+            parent_id = doc.metadata.get("parent_id")
+
+            # Documento standalone
+            if parent_id is None:
+                print(f"[{i}] Standalone")
+                standalone_docs.append(doc)
+                continue
+
+            print(f"[{i}] Child -> parent_id={parent_id}")
+
+            # Child já representado
+            if parent_id in seen_parent_ids:
+                print(f"    Parent {parent_id} já foi identificado. Ignorando child.")
+                continue
+
+            print(f"    Novo parent encontrado: {parent_id}")
+
+            seen_parent_ids.add(parent_id)
+            parent_ids.append(parent_id)
+
+        print("\nParents únicos encontrados:")
+        for pid in parent_ids:
+            print(f" - {pid}")
+
+        parent_docs = []
+
+        print("\nRecuperando parents...")
+
+        for parent_id in parent_ids:
+            parent_payload = self.resolve_parent(parent_id)
+
+            if parent_payload is not None:
+                parent_docs.append(
+                    Document(
+                        page_content=parent_payload["page_content"],
+                        metadata={
+                            **{k: v for k, v in parent_payload.items() if k != "page_content"},
+                            "id": parent_id
+                        }
+                    )
+                )
+
+        print("\nResumo:")
+        print(f"Standalones: {len(standalone_docs)}")
+        print(f"Parents: {len(parent_docs)}")
+        print(f"Total retornado: {len(standalone_docs) + len(parent_docs)}")
+
+
+       
+
+        return standalone_docs + parent_docs
+    
+
+
+
