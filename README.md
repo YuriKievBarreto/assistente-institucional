@@ -4,6 +4,8 @@ Assistente virtual conversacional para o Instituto Federal da Paraíba — Campu
 
 > Acesso: _em breve_
 
+![Exemplo de conversa com o assistente](docs/images/chat_example.jpeg)
+
 ---
 
 ## O que ele faz
@@ -19,13 +21,21 @@ Assistente virtual conversacional para o Instituto Federal da Paraíba — Campu
 
 O assistente usa **RAG (Retrieval-Augmented Generation)** — antes de responder, ele busca os trechos mais relevantes da base de documentos institucionais e os usa como contexto para a resposta do modelo de linguagem. Isso reduz alucinações e garante que as respostas sejam baseadas em informações reais do IFPB.
 
+A recuperação combina busca densa (vetorial) e busca esparsa (léxica), com um reranker filtrando os candidatos antes de montar o contexto final:
+
 ```
 Pergunta do usuário
-    → busca semântica nos documentos (Qdrant)
+    → multiquery (reformulações da pergunta original)
+    → busca híbrida por reformulação: densa (Qdrant) + esparsa (BM25)
+    → reranker seleciona os candidatos mais relevantes
     → contexto relevante + histórico da conversa
     → modelo de linguagem (LLM)
     → resposta
 ```
+
+Documentos com tabelas (cronogramas, editais de vagas, listas) passam por um chunking dedicado: cada tabela é dividida em unidades pai/filho (parent-child), permitindo recuperar tanto a linha específica quanto o contexto completo da tabela quando necessário.
+
+A qualidade do pipeline é medida com [RAGAS](https://docs.ragas.io/), acompanhando `context_precision`, `context_recall`, `answer_relevancy`, `faithfulness` e `answer_correctness` a cada mudança relevante — ver `tests/evaluation/`.
 
 ---
 
@@ -37,6 +47,9 @@ Pergunta do usuário
 - [PostgreSQL](https://www.postgresql.org/) — dados relacionais (usuários, chats, mensagens)
 - [Qdrant](https://qdrant.tech/) — banco vetorial para busca semântica
 - [LangChain](https://www.langchain.com/) — pipeline RAG
+
+**Avaliação**
+- [RAGAS](https://docs.ragas.io/) — avaliação de recuperação e geração (context precision/recall, faithfulness, answer relevancy/correctness)
 
 **Frontend**
 - HTML, CSS e JavaScript puro — sem frameworks
@@ -73,10 +86,10 @@ app/
 └── repositories/       → queries no banco
 
 rag/
-├── chunking/           → divisão de documentos em chunks
-├── crawler/            → coleta de documentos institucionais
-├── extraction/         → extração de texto dos documentos
-└── indexing/           → indexação dos chunks no Qdrant
+├── chunking/           → divisão de documentos em chunks (incl. parent-child para tabelas)
+├── crawler/             → coleta de documentos institucionais
+├── extraction/          → extração de texto dos documentos
+└── indexing/            → indexação dos chunks no Qdrant
 
 frontend/
 ├── index.html
@@ -84,17 +97,17 @@ frontend/
 │   ├── script.js       → entry point
 │   ├── auth.js         → autenticação
 │   ├── chat.js         → gerenciamento de chats
-│   ├── ui.js           → renderização
-│   ├── storage.js      → localStorage
-│   └── modal.js        → modal de auth
-└── css/                → estilos divididos por módulo
+│   ├── ui.js            → renderização
+│   ├── storage.js       → localStorage
+│   └── modal.js         → modal de auth
+└── css/                 → estilos divididos por módulo
 
 docs/
-├── api/                → documentação dos endpoints
-└── architecture/       → diagramas e decisões técnicas
+├── api/                 → documentação dos endpoints
+└── architecture/        → diagramas e decisões técnicas
 
 tests/
-└── evaluation/         → avaliação do pipeline RAG
+└── evaluation/          → avaliação do pipeline RAG (RAGAS) e registro de experimentos
 ```
 
 ---
@@ -102,11 +115,11 @@ tests/
 ## Documentação
 
 - [Arquitetura do banco de dados](docs/architecture/database.md)
+- [Registro de otimizações do RAG](docs/retrieval/rag_evaluation.md) — histórico de experimentos e métricas RAGAS
 
 ---
 
 ## Autor
 
 Desenvolvido por [Yuri Kiev](https://github.com/yurikiev) como projeto de portfólio.
-
 IFPB — Campus Cajazeiras.
