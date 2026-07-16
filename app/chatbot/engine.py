@@ -33,6 +33,10 @@ class ChatEngine:
     
     def retrieve_and_format(self, x):
         docs = self.retriever._multi_query_retrieve(x["question"])
+        print("\n========== CONTEXTO FINAL QUE O LLM RECEBE===========================================================")
+        print(self.retriever.format_context_with_metadata(docs))
+        print("\n=====================================================================================================")
+
         return self.retriever.format_context_with_metadata(docs)
 
     def build_chain(self):

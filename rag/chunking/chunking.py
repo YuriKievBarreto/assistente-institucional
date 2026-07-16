@@ -32,11 +32,78 @@ class RAGChunking:
         tem_separador = any(re.match(r"^\|[\s\-:|]+\|$", l) for l in linhas_com_pipe)
         return len(linhas_com_pipe) >= 2 and tem_separador
 
+    def _split_into_segments(self, texto: str) -> list[tuple[str, str]]:
+        """Divide o texto em segmentos ('text' | 'table'), isolando blocos
+        contíguos de linhas de tabela markdown do texto corrido ao redor.
+
+        FIX: antes, o header_chunk inteiro (que podia misturar prosa +
+        tabela, já que o split é feito por cabeçalho markdown # ## ###)
+        era classificado como "bloco de tabela" só porque continha em
+        algum lugar >=2 linhas com '|' e um separador. Isso fazia com que
+        `_split_table_header_and_rows` "engolisse" todo o texto corrido
+        que vinha DEPOIS da última linha da tabela dentro de uma única
+        row gigante (já que a função só fecha uma row ao encontrar uma
+        nova linha começando com '|').
+
+        Consequência prática: linhas legítimas da tabela (ex: "2 vagas
+        -> 6 classificados") ficavam isoladas em chunks pequenos e pouco
+        informativos, enquanto a última linha da tabela virava um chunk
+        gigante contaminado com parágrafos que não tinham nada a ver com
+        ela — prejudicando tanto a recuperação quanto a qualidade do
+        contexto entregue ao LLM.
+
+        Esta função resolve isso separando ANTES: cada trecho contíguo
+        de linhas com '|' é isolado e só é tratado como tabela se passar
+        em `_is_table_block`; o texto ao redor nunca é misturado.
+        """
+        linhas = texto.split("\n")
+        segments: list[tuple[str, str]] = []
+        buffer_texto: list[str] = []
+        buffer_tabela: list[str] = []
+
+        def flush_texto():
+            if buffer_texto:
+                segments.append(("text", "\n".join(buffer_texto)))
+                buffer_texto.clear()
+
+        def flush_tabela():
+            if buffer_tabela:
+                candidato = "\n".join(buffer_tabela)
+                tipo = "table" if self._is_table_block(candidato) else "text"
+                segments.append((tipo, candidato))
+                buffer_tabela.clear()
+
+        for linha in linhas:
+            if linha.strip().startswith("|"):
+                flush_texto()
+                buffer_tabela.append(linha)
+            else:
+                flush_tabela()
+                buffer_texto.append(linha)
+
+        flush_tabela()
+        flush_texto()
+
+        # merge de segmentos 'text' adjacentes (pode acontecer quando um
+        # bloco de linhas com '|' não é validado como tabela e cai de
+        # volta como 'text', ficando ao lado de outro segmento 'text')
+        merged: list[tuple[str, str]] = []
+        for tipo, conteudo in segments:
+            if merged and merged[-1][0] == tipo == "text":
+                merged[-1] = ("text", merged[-1][1] + "\n" + conteudo)
+            else:
+                merged.append((tipo, conteudo))
+        return merged
+
     def _split_table_header_and_rows(self, table_text: str) -> tuple[str, list[str]]:
         """Separa o header da tabela (título + linha de cabeçalho + separador)
-        das linhas de dados. Diferente da versão original, o header NÃO é
-        mais embutido em cada row — ele é retornado separadamente para ser
-        reaproveitado uma única vez por grupo/parent."""
+        das linhas de dados. O header NÃO é embutido em cada row aqui — ele é
+        retornado separadamente para ser reaproveitado uma única vez por
+        grupo/parent.
+
+        Pré-condição: `table_text` já deve ser um bloco isolado de tabela
+        (ver `_split_into_segments`), sem prosa misturada antes ou depois.
+        """
         linhas = [l for l in table_text.strip().split("\n") if l.strip()]
 
         header_lines = []
@@ -83,19 +150,32 @@ class RAGChunking:
 
             if len(texto.strip()) <= 20:
                 print(f"Pulando chunk irrelevante em: {header_chunk.metadata.get('titulo')}")
+                print(texto)
                 continue
 
-            if self._is_table_block(texto):
-                yield from self._process_table_chunk(texto, header_chunk.metadata, json_metadata, is_web_page)
-            else:
-                # comportamento ORIGINAL, inalterado, para texto corrido
-                sub_chunks = self.recursive_splitter.split_documents([header_chunk])
-                for chunk in sub_chunks:
-                    if len(chunk.page_content.strip()) > 20:
-                        chunk.metadata.update(json_metadata)
-                        chunk.metadata["origem"] = "web" if is_web_page else "edital"
-                        chunk.metadata["chunk_type"] = "standalone"
-                        yield chunk
+            # FIX: em vez de decidir "o header_chunk inteiro é tabela ou
+            # não", segmentamos o conteúdo em blocos de texto e blocos de
+            # tabela isolados. Assim a tabela nunca arrasta prosa junto,
+            # e a prosa ao redor da tabela (que antes era descartada
+            # silenciosamente) volta a ser chunkada normalmente.
+            for tipo, conteudo in self._split_into_segments(texto):
+                if len(conteudo.strip()) <= 20:
+                    continue
+
+                if tipo == "table":
+                    yield from self._process_table_chunk(
+                        conteudo, header_chunk.metadata, json_metadata, is_web_page
+                    )
+                else:
+                    # comportamento ORIGINAL, inalterado, para texto corrido
+                    temp_doc = Document(page_content=conteudo, metadata=header_chunk.metadata)
+                    sub_chunks = self.recursive_splitter.split_documents([temp_doc])
+                    for chunk in sub_chunks:
+                        if len(chunk.page_content.strip()) > 20:
+                            chunk.metadata.update(json_metadata)
+                            chunk.metadata["origem"] = "web" if is_web_page else "edital"
+                            chunk.metadata["chunk_type"] = "standalone"
+                            yield chunk
 
     def _process_table_chunk(self, texto: str, header_metadata: dict, json_metadata: dict, is_web_page: bool):
         """

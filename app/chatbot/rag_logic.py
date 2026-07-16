@@ -26,6 +26,7 @@ class RAGRetriever:
         self.llm = llm
         self.reranker = None
         self.hf_client = InferenceClient(token=os.getenv("HF_TOKEN"), provider="hf-inference")
+        self.debug_mode = False
         if config.use_reranker:
             self.reranker_pesado = CrossEncoder("BAAI/bge-reranker-v2-m3", device="cpu", max_length=600)
             self.reranker_leve = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
@@ -71,7 +72,10 @@ class RAGRetriever:
             )
             for point in results.points
         ]
-
+      
+       
+       
+       if self.debug_mode: print(f"Documentos recebidos: {len(docs)}")
        return [
            doc for doc in docs
            if "sumário" not in doc.metadata.get("Capitulo", "").lower()
@@ -191,25 +195,30 @@ class RAGRetriever:
         all_docs = []
 
         for q in queries:
-           print(q)
            docs = self.retrieve(q)
            all_docs.extend(docs)
 
+       
         
         unique_docs = self.deduplicate(all_docs)
-        top_5_docs = self.rerank(query, unique_docs)
-        
+        if self.debug_mode: print("\n========== DOCS RETORNADOS PELA HYBRID SEARCH===========================================================")
+        for doc in unique_docs:
+            if self.debug_mode: print(doc)
+        top_5_docs = self.remote_rerank(query, unique_docs)
+        print("\n==========================================================================================================")
         unique_docs_and_parents = self.resolve_parents_for_docs(top_5_docs)
        
 
 
-        print("LISTA IDS")
+        
 
         return unique_docs_and_parents
 
     def deduplicate(self, docs):
-        print("desduplicando documentos")
-        print("quantidade inicial de documentos encontrados:", len(docs))
+        if self.debug_mode: 
+            print("desduplicando documentos")
+            print("quantidade inicial de documentos encontrados:", len(docs))
+
         seen = set()
         unique_docs = []
         for doc in docs:
@@ -245,11 +254,50 @@ class RAGRetriever:
             reverse=True
         )
 
-        print("reranquamento feito")
-    
+        
         return [doc for doc, score in ranked[:top_k]]
     
 
+
+    def remote_rerank(self, query: str, docs: list[Document], top_k: int = 5):
+        if not docs:
+            return []
+
+        api_url="https://solving-restoration-involving-holdem.trycloudflare.com"
+        formatted_docs = self.format_for_rerank(docs)
+        import requests
+        print("rodando reranker localemnte")
+        try:
+            response = requests.post(
+                f"{api_url}/rerank",
+                json={
+                    "query": query,
+                    "docs": [doc.page_content for doc in formatted_docs],
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            scores = response.json()["scores"]
+        except requests.RequestException as e:
+            print(f"falha ao chamar reranker remoto: {e}")
+            return docs[:top_k]  # fallback gracioso
+
+        ranked = sorted(
+            zip(formatted_docs, scores),
+            key=lambda pair: pair[1],
+            reverse=True,
+        )
+
+        print("reranqueamento remoto feito")
+        print("\n======================== TOP 5 DOCS DOCS RETORNADOS PELO RERANKER=======================================")
+        for doc, score in ranked[:top_k]:
+            print("\n====================")
+            if self.debug_mode: print(f"\n========== SCORE DO DOCUMENTO: {score} ==========")
+            print("\n========== DOC RETORNADO PELO RERANKER==========")
+            if self.debug_mode: print(doc)
+        
+        print("\n==========================================================================================================")
+        return [doc for doc, score in ranked[:top_k]]
 
 
     def resolve_parent(self, parent_id: str) -> dict | None:
