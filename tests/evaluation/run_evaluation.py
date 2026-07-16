@@ -162,9 +162,9 @@ RagasOutputParser.parse_output_string = _patched_parse_output_string
 # ---------------------------------------------------------------------------
 # Caminhos
 # ---------------------------------------------------------------------------
-DATASET_PATH = "tests/evaluation/datasets/dataset_editais_limpo.csv"
-CHECKPOINT_PATH = "tests/evaluation/datasets/PARENT_CHILD_LIMPO_dataset_haiku_4-5.csv"
-RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/PARENT_CHILD_LIMPO_results_haiku_4-5.csv"
+DATASET_PATH = "tests/evaluation/datasets/parent_child/dataset_editais_limpo.csv"
+CHECKPOINT_PATH = "tests/evaluation/datasets/enriquecimento_table_editais_limpo_haiku_4-5.csv"
+RESULTS_PATH = "tests/evaluation/nova_lite_as_judge/enriquecimento_teste_editais_limpo_haiku_4-5.csv"
 
 
 # ---------------------------------------------------------------------------

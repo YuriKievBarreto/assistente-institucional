@@ -172,3 +172,37 @@ Retornando 10 documentos por query × 4 (query original + multiquery) = 40 candi
 - **Próximo passo:** fixar BGE-reranker-v2-m3 e testar parent-child chunking (gargalo já identificado no Exp. 2).
 
 
+# Experimento 4
+**Data:** 16/07/2026
+
+## Parent-Child Chunking em Tabelas + Enriquecimento com Frases Sintéticas
+
+### Alterações
+
+- Parent-child chunking aplicado especificamente a tabelas: tabelas grandes divididas em múltiplos parents (em vez de um parent único sem limite), com prosa e tabela segmentadas separadamente antes de decidir o tipo do bloco (evitando blocos mistos contaminados).
+- Enriquecimento: cada linha de tabela ganhou uma frase sintética `coluna: valor` anexada ao chunk original, pra reforçar embedding de conteúdo tabular.
+
+### Resultados (judge Claude Haiku 4.5, n=53)
+
+| Métrica | Parent-child em tabelas | + Enriquecimento |
+|---|---:|---:|
+| Context Precision | 0,7866 | 0,7982 |
+| Context Recall | 0,8302 | 0,8491 |
+| Answer Relevancy | 0,2728 | 0,2595 |
+| Faithfulness | 0,9105 | 0,9410 |
+| Answer Correctness | 0,6271 | 0,6199 |
+
+### Análise
+
+- O parent-child chunking em tabelas trouxe ganho consistente em todas as métricas em relação ao baseline anterior (Exp. 3).
+- O enriquecimento por cima teve resultado misto: melhorou context_recall e faithfulness, mas piorou answer_relevancy e answer_correctness — não é uma melhoria uniforme.
+- **Bug encontrado:** quando duas tabelas markdown aparecem uma logo após a outra (sem prosa entre elas — comum nos editais, ex. tabela de cursos seguida de tabela de cronograma), a segmentação atual funde as duas em um bloco só. Isso faz a lógica de linha usar as colunas erradas na hora de gerar a frase sintética (ex.: uma data de pré-matrícula rotulada como se fosse nome de curso). Não confirmamos que isso causou uma regressão específica observada, mas é reproduzível e provavelmente afeta outras tabelas do corpus.
+- A frase sintética não carrega contexto do documento/seção (só usa as colunas da própria tabela), perdendo sobreposição com termos que o usuário usa na pergunta (ex. "cronograma", nome do edital).
+- Tabelas grandes (Anexo I) ainda têm falha de recuperação — o agrupamento em múltiplos parents ajuda mas não resolveu tudo.
+- `answer_relevancy` segue baixo em todos os experimentos (~0,23-0,29), independente da arquitetura — provável limitação da métrica/formato de resposta, não do retriever.
+
+### Próximo passo
+
+1. Corrigir a fusão de tabelas adjacentes na segmentação.
+2. Testar table-to-text real (substituir, não só anexar) em tabelas pequenas/estruturais, com contexto de documento prefixado, mantendo a tabela crua como chunk irmão para a geração.
+3. Investigar o `answer_relevancy` baixo isoladamente.
