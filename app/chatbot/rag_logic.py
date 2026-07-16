@@ -263,7 +263,7 @@ class RAGRetriever:
         if not docs:
             return []
 
-        api_url="https://solving-restoration-involving-holdem.trycloudflare.com"
+        api_url="https://ease-praise-damaged-pill.trycloudflare.com"
         formatted_docs = self.format_for_rerank(docs)
         import requests
         print("rodando reranker localemnte")

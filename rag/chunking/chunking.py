@@ -95,6 +95,65 @@ class RAGChunking:
                 merged.append((tipo, conteudo))
         return merged
 
+    def _clean_cell(self, cell: str) -> str:
+        """Remove marcação markdown residual (negrito, <br>, <u>) de uma
+        célula de tabela e normaliza espaços, deixando texto limpo para
+        compor as frases sintéticas."""
+        cell = cell.strip()
+        cell = re.sub(r"\*\*", "", cell)
+        cell = re.sub(r"<br\s*/?>", " ", cell, flags=re.IGNORECASE)
+        cell = re.sub(r"</?u>", "", cell, flags=re.IGNORECASE)
+        cell = re.sub(r"\s+", " ", cell).strip()
+        return cell
+
+    def _parse_table_line_cells(self, line: str) -> list[str]:
+        """Quebra uma linha markdown '|a|b|c|' em ['a', 'b', 'c'] já limpas."""
+        line = line.strip()
+        if line.startswith("|"):
+            line = line[1:]
+        if line.endswith("|"):
+            line = line[:-1]
+        return [self._clean_cell(c) for c in line.split("|")]
+
+    def _parse_header_columns(self, header_block: str) -> list[str]:
+        """Extrai os nomes das colunas a partir da linha de cabeçalho da
+        tabela (a primeira linha com '|' que não é a linha separadora
+        |---|---|). Usado para nomear os valores nas frases sintéticas."""
+        linhas = [l for l in header_block.strip().split("\n") if l.strip()]
+        for linha in linhas:
+            linha_strip = linha.strip()
+            if linha_strip.startswith("|") and not re.match(r"^\|[\s\-:|]+\|$", linha_strip):
+                return self._parse_table_line_cells(linha_strip)
+        return []
+
+    def _row_to_sentence(self, columns: list[str], row_text: str) -> str:
+        """Converte uma linha de tabela em uma frase 'coluna: valor; coluna:
+        valor' em vez de manter só o formato tabular puro.
+
+        MOTIVAÇÃO: tabelas markdown puras (poucos tokens de texto, muitos
+        números e símbolos '|') tendem a ter embeddings fracos e a perder,
+        em buscas híbridas/semânticas, para chunks de prosa que repetem
+        palavras-chave da pergunta várias vezes — mesmo quando a tabela é
+        a resposta certa. Reforçar o chunk com uma frase que nomeia
+        explicitamente cada valor (reaproveitando os nomes das colunas do
+        header) aumenta a sobreposição lexical/semântica com perguntas em
+        linguagem natural sobre aquela linha.
+        """
+        linha_unica = " ".join(l.strip() for l in row_text.strip().split("\n"))
+        valores = self._parse_table_line_cells(linha_unica)
+        if not columns or not valores:
+            return ""
+        pares = [f"{col}: {val}" for col, val in zip(columns, valores) if col and val]
+        return "; ".join(pares)
+
+    def _rows_to_sentences_block(self, header_block: str, rows: list[str]) -> str:
+        """Gera o bloco de frases sintéticas para um conjunto de rows,
+        reaproveitando as colunas extraídas uma única vez do header."""
+        columns = self._parse_header_columns(header_block)
+        frases = [self._row_to_sentence(columns, r) for r in rows]
+        frases = [f for f in frases if f]
+        return "\n".join(frases)
+
     def _split_table_header_and_rows(self, table_text: str) -> tuple[str, list[str]]:
         """Separa o header da tabela (título + linha de cabeçalho + separador)
         das linhas de dados. O header NÃO é embutido em cada row aqui — ele é
@@ -193,8 +252,17 @@ class RAGChunking:
         base_metadata["origem"] = "web" if is_web_page else "edital"
 
         if len(texto) <= self.table_parent_threshold:
+            # FIX: mesmo tabelas pequenas (que cabem inteiras num único
+            # chunk standalone) sofrem com embedding fraco por serem
+            # majoritariamente numéricas/tabulares. Anexamos frases
+            # sintéticas "coluna: valor" por linha para reforçar a
+            # recuperação, sem remover o formato tabular original (que
+            # continua útil para o LLM ler com precisão).
+            header_block, rows = self._split_table_header_and_rows(texto)
+            frases = self._rows_to_sentences_block(header_block, rows)
+            texto_enriquecido = texto if not frases else f"{texto}\n\n{frases}"
             yield Document(
-                page_content=texto,
+                page_content=texto_enriquecido,
                 metadata={**base_metadata, "chunk_type": "standalone"},
             )
             return
@@ -232,17 +300,35 @@ class RAGChunking:
             )
             return
 
+        columns = self._parse_header_columns(header_block)
+
         for group in groups:
             parent_id = str(uuid.uuid4())
             parent_text = header_block + "\n" + "\n".join(group)
 
+            # FIX: reforça o parent com as frases sintéticas de todas as
+            # rows do grupo, pelo mesmo motivo do caso standalone acima.
+            frases_grupo = self._rows_to_sentences_block(header_block, group)
+            parent_text_enriquecido = (
+                parent_text if not frases_grupo else f"{parent_text}\n\n{frases_grupo}"
+            )
+
             yield Document(
-                page_content=parent_text,
+                page_content=parent_text_enriquecido,
                 metadata={**base_metadata, "chunk_type": "parent", "parent_id": parent_id},
             )
 
             for row_text in group:
                 child_text = header_block + "\n" + row_text
+
+                # FIX: reforça o child (uma única linha) com sua frase
+                # sintética individual — é aqui que o problema de recall
+                # é mais crítico, já que o child costuma ter só o header
+                # + uma linha de valores, quase sem texto semântico.
+                frase_row = self._row_to_sentence(columns, row_text)
+                if frase_row:
+                    child_text = f"{child_text}\n\n{frase_row}"
+
                 if len(child_text.strip()) <= 20:
                     continue
                 yield Document(
