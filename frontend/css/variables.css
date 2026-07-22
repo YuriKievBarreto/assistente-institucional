@@ -21,7 +21,49 @@
     --bg-page:          #f0f4ef;
     --bg-white:         #ffffff;
     --bg-surface:       #f7faf6;
+    --code-bg:          #1e1e1e;
+    --code-text:        #e8e8e8;
+
+    color-scheme: light;
 }
+
+/* ── MODO ESCURO ─────────────────────────────────────────── */
+
+[data-theme="dark"] {
+    --ifpb-green:       #4caf46;
+    --ifpb-green-dark:  #1e4a1a;
+    --ifpb-green-mid:   #5cc054;
+    --ifpb-green-light: #1f3320;
+    --ifpb-green-pale:  #1a2b1b;
+    --ifpb-red:         #e0564a;
+    --ifpb-red-dark:    #96281b;
+    --ifpb-red-light:   #3a201d;
+    --ifpb-gold:        #f0a500;
+    --text-dark:        #eceeec;
+    --text-mid:         #b7c2b3;
+    --text-muted:       #838f80;
+    --border:           #33383a;
+    --bg-page:          #16181a;
+    --bg-white:         #1c1f21;
+    --bg-surface:       #24282a;
+    --code-bg:          #0f1011;
+    --code-text:        #e2e2e2;
+
+    color-scheme: dark;
+}
+
+/* ── TRANSIÇÃO ENTRE TEMAS ───────────────────────────────── */
+
+body, .main-header, .chat-messages, .chat-input-area, .input-wrapper,
+.message.user-msg, .modal-box, .icon-btn, .bot-msg code, .bot-msg pre {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── BOTÃO DE TEMA ───────────────────────────────────────── */
+
+.theme-toggle i.ti-moon-stars { display: none; }
+[data-theme="dark"] .theme-toggle i.ti-sun        { display: none; }
+[data-theme="dark"] .theme-toggle i.ti-moon-stars { display: flex; }
 
 /* ── BODY ────────────────────────────────────────────────── */
 

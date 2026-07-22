@@ -6,6 +6,8 @@ import { chatBox, userInput } from './js/constants.js';
 import { trocarAba, abrirModalAuth, fecharModalAuth } from './js/modal.js';
 import { fazerLogin, fazerRegister, isLoggedIn, atualizarPerfilUI, verificarSessao } from './js/auth.js';
 import { renderizarSidebar, novaConversa } from './js/chat.js';
+import { initTheme } from './js/theme.js';
+import { initCopyButtons } from './js/copyMessage.js';
 
 async function init() {
     chatBox.innerHTML = `
@@ -15,6 +17,8 @@ async function init() {
         </div>`;
 
     await verificarSessao(); // já carrega chats e renderiza sidebar internamente
+    initTheme()
+    initCopyButtons()
 
     // ── Modal ──────────────────────────────────────────────────
     document.getElementById('tab-login').addEventListener('click', () => trocarAba('login'));
