@@ -20,7 +20,7 @@ export function renderizarMensagens(messages) {
             row.classList.add('message-row', 'user');
             row.innerHTML = `${USER_AVATAR}<div class="message user-msg">${msg.content}</div>`;
         } else {
-            row.classList.add('message-row');
+            row.classList.add('message-row', 'bot');
             row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${msg.content}</div>`;
         }
         chatBox.appendChild(row);
@@ -34,7 +34,7 @@ export function addBotMessage(text) {
     if (empty) empty.remove();
 
     const row = document.createElement('div');
-    row.classList.add('message-row');
+    row.classList.add('message-row', 'bot');
     row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${text}</div>`;
     chatBox.appendChild(row);
     chatBox.scrollTop = chatBox.scrollHeight;
