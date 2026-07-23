@@ -182,7 +182,7 @@ Retornando 10 documentos por query × 4 (query original + multiquery) = 40 candi
 - Parent-child chunking aplicado especificamente a tabelas: tabelas grandes divididas em múltiplos parents (em vez de um parent único sem limite), com prosa e tabela segmentadas separadamente antes de decidir o tipo do bloco (evitando blocos mistos contaminados).
 - Enriquecimento: cada linha de tabela ganhou uma frase sintética `coluna: valor` anexada ao chunk original, pra reforçar embedding de conteúdo tabular.
 
-### Resultados (judge Claude Haiku 4.5, n=53)
+### Resultados (judge amazon nova lite, n=53)
 
 | Métrica | Parent-child em tabelas | + Enriquecimento |
 |---|---:|---:|
@@ -206,3 +206,40 @@ Retornando 10 documentos por query × 4 (query original + multiquery) = 40 candi
 1. Corrigir a fusão de tabelas adjacentes na segmentação.
 2. Testar table-to-text real (substituir, não só anexar) em tabelas pequenas/estruturais, com contexto de documento prefixado, mantendo a tabela crua como chunk irmão para a geração.
 3. Investigar o `answer_relevancy` baixo isoladamente.
+
+
+
+# Experimento 5
+**Data:** 22/07/2026
+
+## Mudança no prompt enviado ao LLM
+
+### Contexto
+O prompt enviado ao LLM exigia que toda resposta informasse obrigatoriamente o documento de origem (fonte) e a respectiva URL. Embora essas informações sejam úteis para transparência e rastreabilidade, elas adicionam conteúdo que não faz parte da resposta propriamente dita.
+
+Como a métrica **Answer Correctness** avalia a proximidade da resposta gerada em relação ao *ground truth*, existe a possibilidade de que esse conteúdo adicional seja interpretado como informação desnecessária, reduzindo a pontuação mesmo quando a resposta está correta.
+
+### Hipótese
+Remover do prompt a obrigatoriedade de informar a fonte e a URL, produzindo respostas mais objetivas e próximas do *ground truth*. Espera-se, como consequência, um **aumento na métrica Answer Correctness**.
+
+### Resultados (Judge: Amazon Nova Lite, n = 53)
+
+| Métrica | Antes | Depois | Δ |
+|---|---:|---:|---:|
+| Context Precision | 0,7982 | 0,7935 | **-0,0047** |
+| Context Recall | 0,8491 | 0,8302 | **-0,0189** |
+| Answer Relevancy | 0,2595 | 0,2978 | **+0,0383** |
+| Faithfulness | 0,9410 | 0,8956 | **-0,0454** |
+| Answer Correctness | 0,6199 | 0,7274 | **+0,1075** |
+
+### Análise
+A hipótese foi confirmada. A remoção da obrigatoriedade de incluir a fonte e a URL resultou em um aumento expressivo de **0,1075** na métrica **Answer Correctness**, representando um ganho de aproximadamente **17,3%** em relação ao experimento anterior. Esse resultado reforça que respostas mais enxutas tendem a se aproximar mais do *ground truth* utilizado pelo RAGAS.
+
+Também foi observado um aumento de **0,0383** em **Answer Relevancy**, indicando que as respostas passaram a focar mais diretamente na informação solicitada.
+
+Em contrapartida, houve pequenas reduções em **Context Precision** (-0,0047) e **Context Recall** (-0,0189), além de uma queda mais perceptível em **Faithfulness** (-0,0454). Como a única modificação realizada foi a remoção da exigência de citar a fonte e a URL, é improvável que essa alteração tenha afetado diretamente a etapa de recuperação dos documentos. Dessa forma, essas variações provavelmente refletem a variabilidade inerente ao processo de geração e avaliação do LLM.
+
+No geral, o experimento demonstra que exigir informações complementares na resposta pode prejudicar métricas que comparam a saída do modelo com um *ground truth* conciso, especialmente **Answer Correctness**, sem trazer benefícios perceptíveis para as demais métricas avaliadas.
+
+### Próximo passo
+Apresentar as informações de fonte e URL separadamente da resposta principal, preservando a rastreabilidade sem comprometer as métricas de avaliação.
