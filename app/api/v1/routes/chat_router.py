@@ -6,6 +6,7 @@ from app.chatbot.engine import ChatEngine
 from app.dependencies import get_engine, get_current_user, get_current_user_optional
 from app.database.postgres import get_session
 from app.repositories.chat_repository import find_chats_by_user_id
+from fastapi.responses import StreamingResponse
 
 
 from sqlmodel import Session
@@ -20,24 +21,10 @@ async def chat(req: ChatInputRequest, engine: ChatEngine = Depends(get_engine),
                session: Session = Depends(get_session)):
     
 
-    ai_response = chat_service.chat(engine, req)
-    if current_user:
-       print("usuario ativo encontrado")
-       print("craindo obj de dialogo")
-       dialogue_data = Dialogue(
-           title=req.title,
-           human_message=req.query,
-           AI_response=ai_response.answer,
-           user_id=current_user.id,
-           chat_id=req.session_id
-       )
-       print(dialogue_data)
-
-       chat_service.save_dialogue(session, dialogue_data)
-
-    print("nenhum usuario ativo encontrado!, nenhuma mensagem será salva na memoria")
-
-    return ai_response
+    return StreamingResponse(
+        chat_service.chat_and_save(engine, req, session, current_user),
+        media_type="text/plain",
+    )
 
 
 @chat_router.post("/migrate", status_code=status.HTTP_201_CREATED)

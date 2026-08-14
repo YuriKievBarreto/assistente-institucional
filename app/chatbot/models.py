@@ -15,7 +15,7 @@ class ChatResponse(BaseModel):
     answer: str
 
 
-class RAGConfig(BaseModel):
+class  RAGConfig(BaseModel):
     k_documents: int = 10
     model_name: str =  "llama-3.1-8b-instant"
     score_threshold: float  = 0.7
@@ -32,6 +32,17 @@ class RAGConfig(BaseModel):
         "llama_scout_4": "us.meta.llama4-scout-17b-instruct-v1:0",
 
     }
+
+    gemini_models: dict = {
+    "Gemini3.5Flash": "gemini-3.5-flash",
+    "Gemini2.5Pro": "gemini-2.5-pro",
+    "Gemini2.5Flash": "gemini-2.5-flash",
+    "Gemini2.5FlashLite": "gemini-2.5-flash-lite",
+    "Gemini1.5Pro": "gemini-1.5-pro",
+    "Gemini1.5Flash": "gemini-1.5-flash"
+    }
+
+
 
     use_reranker: bool = True
 

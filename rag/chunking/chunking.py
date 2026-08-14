@@ -36,14 +36,14 @@ class RAGChunking:
         """Divide o texto em segmentos ('text' | 'table'), isolando blocos
         contíguos de linhas de tabela markdown do texto corrido ao redor.
 
-        FIX: antes, o header_chunk inteiro (que podia misturar prosa +
-        tabela, já que o split é feito por cabeçalho markdown # ## ###)
-        era classificado como "bloco de tabela" só porque continha em
-        algum lugar >=2 linhas com '|' e um separador. Isso fazia com que
-        `_split_table_header_and_rows` "engolisse" todo o texto corrido
-        que vinha DEPOIS da última linha da tabela dentro de uma única
-        row gigante (já que a função só fecha uma row ao encontrar uma
-        nova linha começando com '|').
+        FIX (anterior): antes, o header_chunk inteiro (que podia misturar
+        prosa + tabela, já que o split é feito por cabeçalho markdown
+        # ## ###) era classificado como "bloco de tabela" só porque
+        continha em algum lugar >=2 linhas com '|' e um separador. Isso
+        fazia com que `_split_table_header_and_rows` "engolisse" todo o
+        texto corrido que vinha DEPOIS da última linha da tabela dentro
+        de uma única row gigante (já que a função só fecha uma row ao
+        encontrar uma nova linha começando com '|').
 
         Consequência prática: linhas legítimas da tabela (ex: "2 vagas
         -> 6 classificados") ficavam isoladas em chunks pequenos e pouco
@@ -115,16 +115,72 @@ class RAGChunking:
             line = line[:-1]
         return [self._clean_cell(c) for c in line.split("|")]
 
+    def _looks_like_header_row(self, line: str) -> bool:
+        """FIX NOVO: detecta se uma linha de tabela, embora venha logo
+        APÓS o separador |---|---|, ainda é um cabeçalho real e não uma
+        linha de dado.
+
+        MOTIVAÇÃO DO BUG: várias tabelas do corpus (cronogramas de
+        editais, principalmente) vêm com um título mesclado ACIMA dos
+        nomes de coluna reais, seguido do separador logo depois do
+        título — não depois do cabeçalho de verdade:
+
+            |**Técnico Subsequente - 2026**|**- Edificações (Noturno)**|
+            |---|---|
+            |**ETAPA**|**PERÍODO**|
+            |**Pré-Matrícula**|**16 a 22 de janeiro de 2026**|
+
+        Antes desse fix, `_split_table_header_and_rows` fechava o
+        header logo no separador, tratando a linha de título como se
+        fossem os nomes de coluna ("Técnico Subsequente - 2026",
+        "- Edificações (Noturno)") e jogando a linha "ETAPA | PERÍODO"
+        — que É o cabeçalho de verdade — para dentro de `rows`, como se
+        fosse uma linha de dado comum. Resultado: as frases sintéticas
+        geradas ficavam com o rótulo de coluna errado (o título do curso
+        no lugar de "ETAPA"/"PERÍODO"), prejudicando o embedding e a
+        busca híbrida.
+
+        HEURÍSTICA: uma linha de cabeçalho real tende a ter células
+        curtas (poucas palavras), sem dígitos, e majoritariamente em
+        negrito — diferente de uma linha de título (mais longa/textual)
+        e diferente de uma linha de dado (costuma ter números, datas,
+        nomes próprios longos etc).
+        """
+        celulas = self._parse_table_line_cells(line)
+        celulas = [c for c in celulas if c]
+        if not celulas:
+            return False
+
+        def curta_sem_digito(c: str) -> bool:
+            sem_marcacao = re.sub(r"\*\*", "", c).strip()
+            tem_digito = bool(re.search(r"\d", sem_marcacao))
+            poucas_palavras = len(sem_marcacao.split()) <= 3
+            return poucas_palavras and not tem_digito
+
+        proporcao_curta = sum(curta_sem_digito(c) for c in celulas) / len(celulas)
+        return proporcao_curta >= 0.7
+
     def _parse_header_columns(self, header_block: str) -> list[str]:
-        """Extrai os nomes das colunas a partir da linha de cabeçalho da
-        tabela (a primeira linha com '|' que não é a linha separadora
-        |---|---|). Usado para nomear os valores nas frases sintéticas."""
+        """Extrai os nomes das colunas a partir da ÚLTIMA linha de
+        cabeçalho do bloco de header (a linha de cabeçalho real de
+        colunas, não a linha de título mesclado, quando as duas
+        existirem — ver `_looks_like_header_row`).
+
+        FIX: antes, pegava a primeira linha com '|' que não fosse o
+        separador — o que dava errado quando havia título + cabeçalho
+        real, pois a primeira linha era o título. Agora pega a ÚLTIMA
+        linha não-separadora do header_block, que corresponde ao
+        cabeçalho de colunas de fato após o fix em
+        `_split_table_header_and_rows`.
+        """
         linhas = [l for l in header_block.strip().split("\n") if l.strip()]
-        for linha in linhas:
-            linha_strip = linha.strip()
-            if linha_strip.startswith("|") and not re.match(r"^\|[\s\-:|]+\|$", linha_strip):
-                return self._parse_table_line_cells(linha_strip)
-        return []
+        candidatas = [
+            l.strip() for l in linhas
+            if l.strip().startswith("|") and not re.match(r"^\|[\s\-:|]+\|$", l.strip())
+        ]
+        if not candidatas:
+            return []
+        return self._parse_table_line_cells(candidatas[-1])
 
     def _row_to_sentence(self, columns: list[str], row_text: str) -> str:
         """Converte uma linha de tabela em uma frase 'coluna: valor; coluna:
@@ -162,6 +218,18 @@ class RAGChunking:
 
         Pré-condição: `table_text` já deve ser um bloco isolado de tabela
         (ver `_split_into_segments`), sem prosa misturada antes ou depois.
+
+        FIX: depois de encontrar o separador |---|---|, checa se a
+        primeira linha de `data_lines` ainda "parece" um cabeçalho real
+        (ver `_looks_like_header_row`) em vez de assumir que o separador
+        sempre vem logo após o cabeçalho de colunas. Isso cobre o caso
+        de tabelas com título mesclado acima do cabeçalho de colunas
+        (ex: tabelas de cronograma), onde o separador aparece logo após
+        o título, não após "ETAPA | PERÍODO". Quando detectado, essa
+        linha é movida de volta para o header_block, e
+        `_parse_header_columns` passa a extrair os nomes de coluna
+        corretos a partir dela (por pegar a ÚLTIMA linha não-separadora
+        do header_block).
         """
         linhas = [l for l in table_text.strip().split("\n") if l.strip()]
 
@@ -175,6 +243,12 @@ class RAGChunking:
                     separador_encontrado = True
             else:
                 data_lines.append(linha)
+
+        # FIX: se a linha logo após o separador ainda parece um cabeçalho
+        # de colunas (título mesclado acima do cabeçalho real), ela é
+        # movida para o header_block em vez de virar a primeira "row".
+        if data_lines and self._looks_like_header_row(data_lines[0]):
+            header_lines.append(data_lines.pop(0))
 
         header_block = "\n".join(header_lines)
 
@@ -238,15 +312,27 @@ class RAGChunking:
 
     def _process_table_chunk(self, texto: str, header_metadata: dict, json_metadata: dict, is_web_page: bool):
         """
-        FIX: antes, quando a tabela excedia o threshold, era criado um único
-        parent com o texto INTEIRO da tabela (sem limite de tamanho), o que
-        fazia parents de tabelas grandes (ex: ANEXO I com 20 disciplinas)
-        chegarem a 10k+ caracteres — muito acima do table_parent_threshold.
+        FIX (anterior): antes, quando a tabela excedia o threshold, era
+        criado um único parent com o texto INTEIRO da tabela (sem limite
+        de tamanho), o que fazia parents de tabelas grandes (ex: ANEXO I
+        com 20 disciplinas) chegarem a 10k+ caracteres — muito acima do
+        table_parent_threshold.
 
         Agora as linhas da tabela são agrupadas em MÚLTIPLOS parents,
         cada um respeitando o table_parent_threshold. O header da tabela
         é reaproveitado (não duplicado por linha) e prefixado em cada
         parent/child para manter contexto semântico.
+
+        FIX NOVO: quando a tabela não tem um separador |---|---| válido
+        (PDF convertido de forma inconsistente, separador malformado ou
+        ausente), `_split_table_header_and_rows` não encontra nenhuma
+        linha de dado (`rows` fica vazio) e caímos no fallback abaixo —
+        que reproduzia, sem aviso nenhum, o bug original que o
+        parent-child chunking foi criado para resolver (um único parent
+        gigante, sem limite de tamanho). Agora esse caminho emite um log
+        de aviso, para permitir medir quantas tabelas do corpus estão
+        caindo nesse fallback e decidir se vale investir em um parsing
+        de separador mais tolerante.
         """
         base_metadata = {**header_metadata, **json_metadata}
         base_metadata["origem"] = "web" if is_web_page else "edital"
@@ -289,10 +375,18 @@ class RAGChunking:
         if current_group:
             groups.append(current_group)
 
-        # fallback de segurança: se por algum motivo não formou nenhum grupo
-        # (ex: tabela sem linhas de dados detectadas), volta pro comportamento
-        # antigo em vez de silenciosamente não emitir nada.
+        # FIX NOVO: log de aviso no fallback de segurança, para medir a
+        # incidência de tabelas sem separador válido no corpus, em vez
+        # de silenciosamente reproduzir o bug de parent sem limite.
         if not groups:
+            print(
+                "[AVISO] Tabela sem linhas de dado detectadas (provável "
+                "separador |---|---| ausente ou malformado) — caindo em "
+                "fallback SEM limite de tamanho de parent. "
+                f"Capitulo: {header_metadata.get('Capitulo')!r}, "
+                f"tamanho do bloco: {len(texto)} chars, "
+                f"titulo_documento: {json_metadata.get('titulo_documento')!r}"
+            )
             parent_id = str(uuid.uuid4())
             yield Document(
                 page_content=texto,

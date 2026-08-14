@@ -2,13 +2,14 @@ from app.chatbot.engine import ChatEngine
 from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, ChatCreate, Dialogue, AIresponse
 from app.models.message_model import Message, MessageCreate
 import uuid
+from app.models.user_model import User
 from sqlmodel import Session
 from app.repositories import chat_repository, message_repository
 
-def chat(chat_engine: ChatEngine, req: ChatInputRequest):
+async def chat(chat_engine: ChatEngine, req: ChatInputRequest):
     chat_engine.memory.load_history(req.history)
-    answer = chat_engine.chat(req.query)
-    return AIresponse(answer=answer)
+    answer = await chat_engine.chat(req.query)
+    return answer
 
 
 def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: uuid.UUID):
@@ -28,6 +29,26 @@ def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: u
 
     session.add_all(messages_to_insert)
     session.commit()
+
+
+# chat_service.py
+async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None):
+    engine.memory.load_history(req.history)
+    full_response = ""
+
+    async for chunk in engine.stream_chat(req.query):
+        full_response += chunk
+        yield chunk
+
+    if current_user:
+        dialogue_data = Dialogue(
+            title=req.title,
+            human_message=req.query,
+            AI_response=full_response,
+            user_id=current_user.id,
+            chat_id=req.session_id,
+        )
+        save_dialogue(session, dialogue_data)
 
 
 def save_dialogue(session: Session, dialogue_data: Dialogue):

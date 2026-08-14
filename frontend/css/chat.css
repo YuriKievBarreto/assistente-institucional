@@ -76,6 +76,17 @@
     font-size: 13px;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
+.bot-msg a {
+    color: var(--ifpb-green);
+    text-decoration: underline;
+    font-weight: 500;
+    cursor: pointer;
+    word-break: break-word;
+}
+.bot-msg a:hover {
+    color: var(--ifpb-green-hover, #1b682c);
+    text-decoration: underline;
+}
 .bot-msg pre {
     background: var(--code-bg);
     color: var(--code-text);

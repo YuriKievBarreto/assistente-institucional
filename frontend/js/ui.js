@@ -2,6 +2,23 @@
 
 import { BOT_AVATAR, USER_AVATAR, chatBox } from './constants.js';
 
+function formatMessageHtml(html) {
+    if (!html) return '';
+
+    // Converter URLs soltas (http://, https://) que não estão dentro de tags <a> para links <a>
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+
+    // Ajustar todas as tags <a> para abrir em nova aba e ter a relação de segurança adequada
+    const links = tempDiv.querySelectorAll('a');
+    links.forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    return tempDiv.innerHTML;
+}
+
 export function renderizarMensagens(messages) {
     chatBox.innerHTML = '';
 
@@ -21,7 +38,7 @@ export function renderizarMensagens(messages) {
             row.innerHTML = `${USER_AVATAR}<div class="message user-msg">${msg.content}</div>`;
         } else {
             row.classList.add('message-row', 'bot');
-            row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${msg.content}</div>`;
+            row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${formatMessageHtml(msg.content)}</div>`;
         }
         chatBox.appendChild(row);
     });
@@ -35,9 +52,35 @@ export function addBotMessage(text) {
 
     const row = document.createElement('div');
     row.classList.add('message-row', 'bot');
-    row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${text}</div>`;
+    row.innerHTML = `${BOT_AVATAR}<div class="message bot-msg">${formatMessageHtml(text)}</div>`;
     chatBox.appendChild(row);
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+export function createBotMessagePlaceholder() {
+    const empty = chatBox.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const row = document.createElement('div');
+    row.classList.add('message-row', 'bot');
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', 'bot-msg');
+    row.innerHTML = BOT_AVATAR;
+    row.appendChild(msgDiv);
+    chatBox.appendChild(row);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    let fullText = '';
+
+    return {
+        appendChunk: (chunk) => {
+            fullText += chunk;
+            msgDiv.innerHTML = formatMessageHtml(fullText);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        },
+        getText: () => fullText,
+        remove: () => row.remove()
+    };
 }
 
 export function showTyping() {

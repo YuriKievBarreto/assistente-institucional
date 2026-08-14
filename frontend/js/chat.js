@@ -2,7 +2,7 @@
 
 import { API_BASE, chatForm, chatBox, userInput, sendBtn, USER_AVATAR } from './constants.js';
 import { carregarTodosChats, salvarTodosChats, buscarChat, salvarMensagem, gerarId, gerarTitulo } from './storage.js';
-import { renderizarMensagens, addBotMessage, showTyping, hideTyping } from './ui.js';
+import { renderizarMensagens, addBotMessage, createBotMessagePlaceholder, showTyping, hideTyping } from './ui.js';
 import { authHeaders } from './auth.js';
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -84,7 +84,7 @@ export function excluirChat(id) {
 
 // ── ENVIO ─────────────────────────────────────────────────────
 
-async function enviarMensagem(textoDoUsuario) {
+async function enviarMensagem(textoDoUsuario, onChunk) {
     try {
         const chat = buscarChat(currentChatId);
         const history = chat ? chat.messages.slice(0, -1).map(msg => ({
@@ -98,7 +98,6 @@ async function enviarMensagem(textoDoUsuario) {
         const resposta = await fetch(`${API_BASE}/chat/`, {
             method: 'POST',
             headers: authHeaders(),
-            
             body: JSON.stringify({
                 query: textoDoUsuario,
                 session_id: currentChatId,
@@ -107,10 +106,29 @@ async function enviarMensagem(textoDoUsuario) {
             })
         });
 
-        return await resposta.json();
+        if (!resposta.ok) {
+            throw new Error(`Erro no servidor: ${resposta.status}`);
+        }
+
+        const reader = resposta.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            fullText += chunk;
+            if (onChunk) {
+                onChunk(chunk);
+            }
+        }
+
+        return fullText;
     } catch (erro) {
         console.error('Erro ao conectar com o servidor:', erro);
-        addBotMessage('Não foi possível conectar com o servidor. Tente novamente.');
+        throw erro;
     }
 }
 
@@ -148,17 +166,34 @@ chatForm.addEventListener('submit', async (e) => {
     renderizarSidebar();
     showTyping();
 
-    const response = await enviarMensagem(messageText);
+    let botPlaceholder = null;
+    let fullResponse = '';
 
-    hideTyping();
-    userInput.disabled = false;
-    sendBtn.disabled   = false;
-    userInput.focus();
+    try {
+        fullResponse = await enviarMensagem(messageText, (chunk) => {
+            if (!botPlaceholder) {
+                hideTyping();
+                botPlaceholder = createBotMessagePlaceholder();
+            }
+            botPlaceholder.appendChunk(chunk);
+        });
 
-    if (response) {
-        const resposta = response.answer || response.mensagem_recebida || '';
-        salvarMensagem(currentChatId, 'ai', resposta);
-        addBotMessage(resposta);
+        if (fullResponse) {
+            salvarMensagem(currentChatId, 'ai', fullResponse);
+        } else if (botPlaceholder) {
+            salvarMensagem(currentChatId, 'ai', botPlaceholder.getText());
+        }
+    } catch (erro) {
+        hideTyping();
+        if (botPlaceholder) {
+            botPlaceholder.remove();
+        }
+        addBotMessage('Não foi possível conectar com o servidor. Tente novamente.');
+    } finally {
+        hideTyping();
+        userInput.disabled = false;
+        sendBtn.disabled   = false;
+        userInput.focus();
     }
 });
 

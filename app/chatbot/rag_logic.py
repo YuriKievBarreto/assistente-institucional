@@ -29,7 +29,6 @@ class RAGRetriever:
         self.debug_mode = False
         if config.use_reranker:
             self.reranker_pesado = CrossEncoder("BAAI/bge-reranker-v2-m3", device="cpu", max_length=600)
-            self.reranker_leve = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
             self.reranker = self.reranker_pesado
            
             
@@ -75,7 +74,7 @@ class RAGRetriever:
       
        
        
-       if self.debug_mode: print(f"Documentos recebidos: {len(docs)}")
+       
        return [
            doc for doc in docs
            if "sumário" not in doc.metadata.get("Capitulo", "").lower()
@@ -83,7 +82,6 @@ class RAGRetriever:
        ]
     
     def format_context(self, docs: list[Document]) -> str:
-        print(self.format_context_with_metadata(docs))
         return "\n\n".join(doc.page_content for doc in docs)
     
     def format_context_with_metadata(self, docs: list[Document]) -> str:
@@ -198,27 +196,14 @@ class RAGRetriever:
            docs = self.retrieve(q)
            all_docs.extend(docs)
 
-       
-        
         unique_docs = self.deduplicate(all_docs)
-        if self.debug_mode: print("\n========== DOCS RETORNADOS PELA HYBRID SEARCH===========================================================")
-        for doc in unique_docs:
-            if self.debug_mode: print(doc)
         top_5_docs = self.remote_rerank(query, unique_docs)
-        print("\n==========================================================================================================")
         unique_docs_and_parents = self.resolve_parents_for_docs(top_5_docs)
        
-
-
-        
 
         return unique_docs_and_parents
 
     def deduplicate(self, docs):
-        if self.debug_mode: 
-            print("desduplicando documentos")
-            print("quantidade inicial de documentos encontrados:", len(docs))
-
         seen = set()
         unique_docs = []
         for doc in docs:
@@ -228,7 +213,6 @@ class RAGRetriever:
                 seen.add(key)
                 unique_docs.append(doc)
 
-        print("quantidade de documentos que restaram: ", len(unique_docs))
         return  unique_docs
 
 
@@ -236,12 +220,7 @@ class RAGRetriever:
         
         if not docs:
             return []
-        
-        if self.reranker is None:
-            print("reranker local desativado")
-            return docs[:top_k]
-        
-            
+
             
         formatted_docs = self.format_for_rerank(docs)
         
@@ -263,7 +242,7 @@ class RAGRetriever:
         if not docs:
             return []
 
-        api_url="https://ease-praise-damaged-pill.trycloudflare.com"
+        api_url="https://qld-familiar-expectations-psp.trycloudflare.com"
         formatted_docs = self.format_for_rerank(docs)
         import requests
         print("rodando reranker localemnte")
@@ -288,15 +267,6 @@ class RAGRetriever:
             reverse=True,
         )
 
-        print("reranqueamento remoto feito")
-        print("\n======================== TOP 5 DOCS DOCS RETORNADOS PELO RERANKER=======================================")
-        for doc, score in ranked[:top_k]:
-            print("\n====================")
-            if self.debug_mode: print(f"\n========== SCORE DO DOCUMENTO: {score} ==========")
-            print("\n========== DOC RETORNADO PELO RERANKER==========")
-            if self.debug_mode: print(doc)
-        
-        print("\n==========================================================================================================")
         return [doc for doc, score in ranked[:top_k]]
 
 
