@@ -5,9 +5,10 @@ from app.chatbot.models import RAGConfig
 from langchain_qdrant import QdrantVectorStore
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
-from langchain_core.runnables import  RunnableParallel, RunnableLambda
+from langchain_core.runnables import  RunnableParallel, RunnableLambda, RunnableSerializable
 from app.chatbot.llm import get_bedrock_llm, get_groq_llm, get_google_llm
 from langchain_core.language_models.chat_models import BaseChatModel
+from typing import AsyncGenerator
 import os
 from dotenv import load_dotenv
 
@@ -31,11 +32,11 @@ class ChatEngine:
         self.chain = self.build_chain()
 
     
-    def retrieve_and_format(self, x):
+    def retrieve_and_format(self, x) -> str:
         docs = self.retriever._multi_query_retrieve(x["question"])
         return self.retriever.format_context_with_metadata(docs)
 
-    def build_chain(self):
+    def build_chain(self) -> RunnableSerializable:
         prompt = ChatPromptTemplate.from_messages([
         ("system",  """
                 Você é o assistente institucional do IFPB — Campus Cajazeiras.
@@ -89,13 +90,13 @@ class ChatEngine:
 
         return chain
         
-    def chat(self, question: str):
+    def chat(self, question: str) -> str:
         response = self.chain.invoke({"question": question})
         content = str(response.content)
 
         return content
 
-    async def stream_chat(self, question: str):
+    async def stream_chat(self, question: str) -> AsyncGenerator[str, None]:
         async for chunk in self.chain.astream({"question": question}):
             text = chunk.content
             if text:
