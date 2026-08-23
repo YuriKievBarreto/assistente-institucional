@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-user_router = APIRouter()
+router = APIRouter()
 
-@user_router.get("/")
+@router.get("/")
 async def test():
     return "working"
