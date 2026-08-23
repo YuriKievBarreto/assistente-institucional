@@ -1,4 +1,5 @@
 from app.chatbot.engine import ChatEngine
+from app.database.qdrant_vector_store import qdrant_client
 from app.models.chat_model import ChatInputRequest
 from app.chatbot.rag_logic import RAGConfig, RAGRetriever
 from fastapi.security import OAuth2PasswordBearer
@@ -10,6 +11,7 @@ from app.database.postgres import get_session
 from functools import lru_cache
 from app.chatbot.memory import MemoryManager
 from app.repositories import user_repository
+from app.repositories.qdrant_repository import QdrantRepository
 from sqlmodel import Session
 from app.database.qdrant_vector_store import vector_store
 from app.chatbot.models import RAGConfig
@@ -19,6 +21,9 @@ from app.chatbot.llm import get_groq_llm, get_bedrock_llm
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 oauth_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
+def get_vector_repository() -> QdrantRepository:
+    return QdrantRepository(qdrant_client=qdrant_client, collection_name='ifpb')
+
 def get_session_id(req: ChatInputRequest) -> str:
     return req.session_id
 
@@ -27,8 +32,9 @@ def get_config() -> RAGConfig:
 
 @lru_cache()
 def get_retriever() -> RAGRetriever:
+    vector_repo = get_vector_repository()
     config = get_config()
-    return RAGRetriever(vector_store, config, get_bedrock_llm(config, "amazon_nova_lite"))
+    return RAGRetriever(vector_store, config, get_bedrock_llm(config, "amazon_nova_lite"), vector_repo=vector_repo)
 
 
 def get_engine(session_id: str = Depends(get_session_id), 

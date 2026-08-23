@@ -12,13 +12,16 @@ from app.chatbot.models import QueryList
 from sentence_transformers import CrossEncoder
 from huggingface_hub import InferenceClient
 from qdrant_client import QdrantClient
+from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 class RAGRetriever:
-    def __init__(self, vector_store, config: RAGConfig, llm: BaseChatModel):
+    def __init__(self, vector_store, config: RAGConfig, llm: BaseChatModel, vector_repo: VectorRepositoryInterface):
+        self.vector_repo = vector_repo
         self.vector_store = vector_store
+        
         self.config = config
         self.client: QdrantClient = vector_store.client
         self.collection_name: str = vector_store.collection_name
@@ -36,50 +39,15 @@ class RAGRetriever:
 
     
     def retrieve(self, query: str) -> list[Document]:
-       dense_vector = embeddings.embed_query(query)
-       sparse_vector = list(self.sparse_model.embed([query]))[0]
+       limit = self.config.k_documents
+       docs = self.vector_repo.hybrid_search(query=query, limit=limit)
 
-       results = self.client.query_points(
-           collection_name=self.collection_name,
-           prefetch=[
-               Prefetch(
-                   query=dense_vector,
-                   using="dense",
-                   limit=20
-               ),
-               Prefetch(
-                   query=SparseVector(
-                       indices=sparse_vector.indices.tolist(),
-                       values=sparse_vector.values.tolist()
-                   ),
-                   using="sparse",
-                   limit=20
-               )
-           ],
-           query=FusionQuery(fusion=Fusion.RRF),
-           limit= self.config.k_documents
-       )
-
-       docs = [
-            Document(
-                page_content=point.payload["page_content"],
-                metadata={
-                    **{k: v for k, v in point.payload.items() if k != "page_content"},
-                    "_id": point.id  # 👈 importante
-                },
-                
-            )
-            for point in results.points
-        ]
-      
-       
-       
-       
        return [
-           doc for doc in docs
-           if "sumário" not in doc.metadata.get("Capitulo", "").lower()
-           and "sumario" not in doc.metadata.get("Capitulo", "").lower()
-       ]
+                doc for doc in docs
+                if "sumario" not in doc.metadata.get("Capitulo", "").lower()
+                and "sumário" not in doc.metadata.get("Capitulo", "").lower()
+            ]
+
     
     def format_context(self, docs: list[Document]) -> str:
         return "\n\n".join(doc.page_content for doc in docs)
