@@ -30,11 +30,20 @@ def get_session_id(req: ChatInputRequest) -> str:
 def get_config() -> RAGConfig:
     return RAGConfig()
 
+from app.chatbot.services.query_expander import QueryExpander
+
 @lru_cache()
 def get_retriever() -> RAGRetriever:
     vector_repo = get_vector_repository()
     config = get_config()
-    return RAGRetriever(config, get_bedrock_llm(config, "amazon_nova_lite"), vector_repo=vector_repo)
+    llm = get_bedrock_llm(config, "amazon_nova_lite")
+    query_expander = QueryExpander(llm)
+    return RAGRetriever(
+        config=config, 
+        llm=llm, 
+        vector_repo=vector_repo, 
+        query_expander=query_expander
+    )
 
 
 def get_engine(session_id: str = Depends(get_session_id), 

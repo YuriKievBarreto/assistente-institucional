@@ -50,7 +50,7 @@ class QdrantRepository(VectorRepositoryInterface):
             ]
         
 
-    def get_parents_by_ids(self, parents_ids: list[str], collection_name: str = "ifpb_parents") -> list[dict]:
+    def get_parents_by_ids(self, parents_ids: list[str], collection_name: str = "ifpb_parents") -> list[Document]:
         if not parents_ids:
             return []
             
@@ -59,7 +59,18 @@ class QdrantRepository(VectorRepositoryInterface):
             ids=parents_ids,
             with_payload=True,
         )
-        return [point.payload for point in results if point.payload]
+        parent_docs = []
+        for point in results:
+            if point.payload:
+                payload = dict(point.payload)
+                page_content = payload.pop("page_content", "")
+                parent_docs.append(
+                    Document(
+                        page_content=page_content,
+                        metadata={**payload, "id": point.id}
+                    )
+                )
+        return parent_docs
 
 
     

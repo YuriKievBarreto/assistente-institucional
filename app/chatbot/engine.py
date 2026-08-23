@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 
 
 
+from app.chatbot.services.formatters import DocumentFormatter
+
 class ChatEngine:
     def __init__(
             self,
@@ -26,15 +28,11 @@ class ChatEngine:
         self.memory = memory_manager
         self.llm = get_groq_llm(self.config)
         self.retriever = retriever
-        
-        
-        
         self.chain = self.build_chain()
 
-    
     def retrieve_and_format(self, x) -> str:
         docs = self.retriever._multi_query_retrieve(x["question"])
-        return self.retriever.format_context_with_metadata(docs)
+        return DocumentFormatter.format_context_with_metadata(docs)
 
     def build_chain(self) -> RunnableSerializable:
         prompt = ChatPromptTemplate.from_messages([
