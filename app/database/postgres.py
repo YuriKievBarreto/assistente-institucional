@@ -1,11 +1,7 @@
 from sqlmodel import create_engine, Session
-import os
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
-
-PG_DATABASE_URL: str  = os.getenv("PG_DATABASE_URL")
-engine = create_engine(PG_DATABASE_URL)
+engine = create_engine(settings.PG_DATABASE_URL)
 
 def get_session():
     with Session(engine) as session:

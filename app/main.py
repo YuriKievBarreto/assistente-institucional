@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from app.database.create_tables import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
+from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -10,7 +11,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="Assistente institucional - IFPB Campus Cajazeiras",
+    title=settings.PROJECT_NAME,
     lifespan=lifespan
 )
 
