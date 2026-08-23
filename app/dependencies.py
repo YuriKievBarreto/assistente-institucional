@@ -34,7 +34,7 @@ def get_config() -> RAGConfig:
 def get_retriever() -> RAGRetriever:
     vector_repo = get_vector_repository()
     config = get_config()
-    return RAGRetriever(vector_store, config, get_bedrock_llm(config, "amazon_nova_lite"), vector_repo=vector_repo)
+    return RAGRetriever(config, get_bedrock_llm(config, "amazon_nova_lite"), vector_repo=vector_repo)
 
 
 def get_engine(session_id: str = Depends(get_session_id), 

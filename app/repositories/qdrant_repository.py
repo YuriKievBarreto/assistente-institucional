@@ -50,16 +50,17 @@ class QdrantRepository(VectorRepositoryInterface):
             ]
         
 
-    def get_parents_by_ids(self, parent_ids: list[str], collection_name: str = "ifpb_parents") -> list[dict]:
-        if not parent_ids:
+    def get_parents_by_ids(self, parents_ids: list[str], collection_name: str = "ifpb_parents") -> list[dict]:
+        if not parents_ids:
             return []
             
         results = self.qdrant_client.retrieve(
             collection_name=collection_name,
-            ids=parent_ids,
+            ids=parents_ids,
             with_payload=True,
         )
         return [point.payload for point in results if point.payload]
 
 
+    
     

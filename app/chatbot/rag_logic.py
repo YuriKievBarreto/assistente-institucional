@@ -1,30 +1,19 @@
 from app.chatbot.models import RAGConfig
-from langchain_core.vectorstores import VectorStoreRetriever
-from qdrant_client import QdrantClient
-from app.database.qdrant_vector_store import vector_store
-from app.database.qdrant_vector_store import embeddings
 from langchain_core.documents import Document
 from fastembed import SparseTextEmbedding
-from qdrant_client.models import SparseVector, Prefetch, FusionQuery, Fusion
-from langchain_classic.retrievers import MultiQueryRetriever
 from langchain_core.language_models.chat_models import BaseChatModel
 from app.chatbot.models import QueryList
 from sentence_transformers import CrossEncoder
 from huggingface_hub import InferenceClient
-from qdrant_client import QdrantClient
 from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 class RAGRetriever:
-    def __init__(self, vector_store, config: RAGConfig, llm: BaseChatModel, vector_repo: VectorRepositoryInterface):
+    def __init__(self, config: RAGConfig, llm: BaseChatModel, vector_repo: VectorRepositoryInterface):
         self.vector_repo = vector_repo
-        self.vector_store = vector_store
-        
         self.config = config
-        self.client: QdrantClient = vector_store.client
-        self.collection_name: str = vector_store.collection_name
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
         self.llm = llm
         self.reranker = None
@@ -238,30 +227,17 @@ class RAGRetriever:
         return [doc for doc, score in ranked[:top_k]]
 
 
-    def resolve_parent(self, parent_id: str) -> dict | None:
-        result = self.client.retrieve(
-            collection_name="ifpb_parents",
-            ids=[parent_id],
-            with_payload=True,
-        )
-        if result:
-            return result[0].payload  # devolve o payload inteiro, não só page_content
-        return None
-    
-
     def resolve_parents_for_docs(self, docs: list[Document]) -> list[Document]:
         print("\n========== RESOLVENDO PARENTS ==========")
         print(f"Documentos recebidos: {len(docs)}")
 
         standalone_docs = []
         parent_ids = []
-
         seen_parent_ids = set()
 
         for i, doc in enumerate(docs, start=1):
             parent_id = doc.metadata.get("parent_id")
 
-            # Documento standalone
             if parent_id is None:
                 print(f"[{i}] Standalone")
                 standalone_docs.append(doc)
@@ -269,13 +245,11 @@ class RAGRetriever:
 
             print(f"[{i}] Child -> parent_id={parent_id}")
 
-            # Child já representado
             if parent_id in seen_parent_ids:
                 print(f"    Parent {parent_id} já foi identificado. Ignorando child.")
                 continue
 
             print(f"    Novo parent encontrado: {parent_id}")
-
             seen_parent_ids.add(parent_id)
             parent_ids.append(parent_id)
 
@@ -283,14 +257,12 @@ class RAGRetriever:
         for pid in parent_ids:
             print(f" - {pid}")
 
+        print("\nRecuperando parents via VectorRepository...")
+        parent_payloads = self.vector_repo.get_parents_by_ids(parent_ids)
         parent_docs = []
 
-        print("\nRecuperando parents...")
-
-        for parent_id in parent_ids:
-            parent_payload = self.resolve_parent(parent_id)
-
-            if parent_payload is not None:
+        for parent_id, parent_payload in zip(parent_ids, parent_payloads):
+            if parent_payload:
                 parent_docs.append(
                     Document(
                         page_content=parent_payload["page_content"],
@@ -305,9 +277,6 @@ class RAGRetriever:
         print(f"Standalones: {len(standalone_docs)}")
         print(f"Parents: {len(parent_docs)}")
         print(f"Total retornado: {len(standalone_docs) + len(parent_docs)}")
-
-
-       
 
         return standalone_docs + parent_docs
     
