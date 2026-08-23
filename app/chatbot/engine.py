@@ -46,8 +46,4 @@ class ChatEngine:
         async for chunk in self.chain.astream({"question": question}):
             text = chunk.content
             if text:
-
-        
-        
-        
-        
+                yield str(text)

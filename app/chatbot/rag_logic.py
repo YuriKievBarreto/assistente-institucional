@@ -30,7 +30,7 @@ class RAGRetriever:
             and "sumário" not in doc.metadata.get("Capitulo", "").lower()
         ]
 
-    def _multi_query_retrieve(self, query: str) -> list[Document]:
+    def multi_query_retrieve(self, query: str) -> list[Document]:
         queries = self.query_expander.expand(query, k=3)
         all_docs = []
         for q in queries:

@@ -1,6 +1,4 @@
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
-from langchain_aws import ChatBedrock
 from typing import List, Optional
 import os
 from dotenv import load_dotenv
