@@ -10,15 +10,15 @@ from fastapi.responses import StreamingResponse
 
 
 from sqlmodel import Session
-from app.api.services import chat_service
+from app.services import chat_service
 
 chat_router = APIRouter()
 
 
-@chat_router.post("/", response_model=AIresponse)
+@chat_router.post("/", response_model=StreamingResponse)
 async def chat(req: ChatInputRequest, engine: ChatEngine = Depends(get_engine), 
                current_user : User | None = Depends(get_current_user_optional), 
-               session: Session = Depends(get_session)):
+               session: Session = Depends(get_session)) -> StreamingResponse:
     
 
     return StreamingResponse(

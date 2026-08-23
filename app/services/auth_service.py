@@ -6,7 +6,7 @@ from app.repositories import user_repository, user_account_repository
 from app.core.security import hash_password, generate_token, verify_password
 
 
-def register(session: Session, user_data: UserCreate):
+def register(session: Session, user_data: UserCreate) -> RegisterResponse:
     existing_user = user_repository.get_user_by_email(session, user_data.email)
     if existing_user:
         raise HTTPException(
@@ -46,7 +46,7 @@ def register(session: Session, user_data: UserCreate):
     )
 
 
-def login(session: Session, user_data: LoginRequest):
+def login(session: Session, user_data: LoginRequest) -> RegisterResponse:
     db_user: User = user_repository.get_user_by_email(session, user_data.email)
     if not db_user:
         raise HTTPException(

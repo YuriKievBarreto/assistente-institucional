@@ -3,16 +3,17 @@ from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, Ch
 from app.models.message_model import Message, MessageCreate
 import uuid
 from app.models.user_model import User
+from typing import AsyncGenerator
 from sqlmodel import Session
 from app.repositories import chat_repository, message_repository
 
 async def chat(chat_engine: ChatEngine, req: ChatInputRequest):
     chat_engine.memory.load_history(req.history)
-    answer = await chat_engine.chat(req.query)
+    answer = await chat_engine.stream_chat(req.query)
     return answer
 
 
-def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: uuid.UUID):
+def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: uuid.UUID) -> None:
     messages_to_insert = []
 
     for chat_data in migrate_data.chats_data:
@@ -32,7 +33,7 @@ def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: u
 
 
 # chat_service.py
-async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None):
+async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None) -> None | AsyncGenerator:
     engine.memory.load_history(req.history)
     full_response = ""
 
@@ -51,7 +52,7 @@ async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Sess
         save_dialogue(session, dialogue_data)
 
 
-def save_dialogue(session: Session, dialogue_data: Dialogue):
+def save_dialogue(session: Session, dialogue_data: Dialogue) -> None:
     print("iniciando salvamento de dialogo")
     chat = chat_repository.find_chat_by_id(session, uuid.UUID(dialogue_data.chat_id))
     print("há chat? ", chat)
@@ -68,7 +69,7 @@ def save_dialogue(session: Session, dialogue_data: Dialogue):
     save_message(session, MessageCreate(role="ai", content=dialogue_data.AI_response), chat.id)
 
 
-def save_message(session: Session, message_data: MessageCreate, chat_id):
+def save_message(session: Session, message_data: MessageCreate, chat_id) -> Message:
     return message_repository.create_message(session, message_data, chat_id)
 
 
