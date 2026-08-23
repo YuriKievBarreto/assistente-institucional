@@ -43,6 +43,8 @@ class RegisterResponse(SQLModel):
     access_token: str
     token_type: str = "bearer"
 
+TokenResponse = RegisterResponse
+
 
 class LoginRequest(SQLModel):
     email: EmailStr
