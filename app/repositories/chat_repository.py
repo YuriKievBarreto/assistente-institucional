@@ -1,43 +1,55 @@
-from app.models.chat_model import Chat, ChatCreate
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
-import uuid
+from app.models.tables.chat_table import ChatTable
+from app.models.domain.chat import Chat
+from app.models.domain.message import Message
 from app.repositories.interfaces.chat_repository_interface import IChatRepository
+import uuid
+
 
 class ChatRepository(IChatRepository):
     def __init__(self, session: Session):
         self.session = session
 
-    def create_chat(self, chat_info: ChatCreate, user_id: uuid.UUID) -> Chat:
-        new_chat = Chat(
-            title=chat_info.title,
-            user_id=user_id
+    def _to_entity(self, row: ChatTable) -> Chat:
+        return Chat(
+            id=row.id,
+            title=row.title,
+            user_id=row.user_id,
+            created_at=row.created_at,
+            deleted_at=row.deleted_at,
+            messages=[
+                Message(
+                    id=msg.id,
+                    role=msg.role,
+                    content=msg.content,
+                    chat_id=msg.chat_id,
+                    created_at=msg.created_at,
+                )
+                for msg in (row.messages or [])
+            ],
         )
 
-        self.session.add(new_chat)
+    def create_chat(self, title: str, user_id: uuid.UUID) -> Chat:
+        row = ChatTable(title=title, user_id=user_id)
+        self.session.add(row)
         self.session.commit()
-        self.session.refresh(new_chat)
-
-        return new_chat
+        self.session.refresh(row)
+        return self._to_entity(row)
 
     def find_chats_by_user_id(self, user_id: uuid.UUID) -> list[Chat]:
         query = (
-            select(Chat)
-            .where(Chat.user_id == user_id)
-            .options(selectinload(Chat.messages))
+            select(ChatTable)
+            .where(ChatTable.user_id == user_id)
+            .options(selectinload(ChatTable.messages))
         )
-
-        chats = list(self.session.exec(query).all())
-        return chats
+        rows = list(self.session.exec(query).all())
+        return [self._to_entity(row) for row in rows]
 
     def find_chat_by_id(self, chat_id: uuid.UUID) -> Chat | None:
-        query = select(Chat).where(Chat.id == chat_id)
-        return self.session.exec(query).first()
+        query = select(ChatTable).where(ChatTable.id == chat_id)
+        row = self.session.exec(query).first()
+        return self._to_entity(row) if row else None
 
     def rollback(self) -> None:
         self.session.rollback()
-
-
-
-
-

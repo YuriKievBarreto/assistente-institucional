@@ -1,8 +1,8 @@
 from typing import Protocol
-from app.models.message_model import Message, MessageCreate
+from app.models.domain.message import Message
 import uuid
 
 
 class IMessageRepository(Protocol):
-    def create_message(self, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
-        ...
+    def create_message(self, role: str, content: str, chat_id: uuid.UUID) -> Message:
+        ...

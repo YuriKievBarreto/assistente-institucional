@@ -1,5 +1,6 @@
 from typing import Protocol
-from app.models.user_model import UserCreate, User
+from app.models.domain.user import User
+from app.models.schemas.user_schemas import UserCreate
 import uuid
 
 
@@ -15,4 +16,3 @@ class IUserRepository(Protocol):
 
     def rollback(self) -> None:
         ...
-

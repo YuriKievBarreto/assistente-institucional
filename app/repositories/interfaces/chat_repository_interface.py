@@ -1,9 +1,10 @@
 from typing import Protocol
-from app.models.chat_model import Chat, ChatCreate
+from app.models.domain.chat import Chat
 import uuid
 
+
 class IChatRepository(Protocol):
-    def create_chat(self, chat_info: ChatCreate, user_id: uuid.UUID) -> Chat:
+    def create_chat(self, title: str, user_id: uuid.UUID) -> Chat:
         ...
 
     def find_chats_by_user_id(self, user_id: uuid.UUID) -> list[Chat]:
@@ -14,4 +15,3 @@ class IChatRepository(Protocol):
 
     def rollback(self) -> None:
         ...
-

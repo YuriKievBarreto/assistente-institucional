@@ -1,24 +1,26 @@
-from app.models.message_model import Message, MessageCreate
-from app.models.chat_model import Chat
 from sqlmodel import Session
-import uuid
+from app.models.tables.message_table import MessageTable
+from app.models.domain.message import Message
 from app.repositories.interfaces.message_repository_interface import IMessageRepository
+import uuid
 
 
 class MessageRepository(IMessageRepository):
     def __init__(self, session: Session):
         self.session = session
 
-    def create_message(self, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
-        new_message = Message(
-           role=message_data.role,
-           content=message_data.content,
-           chat_id=chat_id
+    def _to_entity(self, row: MessageTable) -> Message:
+        return Message(
+            id=row.id,
+            role=row.role,
+            content=row.content,
+            chat_id=row.chat_id,
+            created_at=row.created_at,
         )
 
-        self.session.add(new_message)
+    def create_message(self, role: str, content: str, chat_id: uuid.UUID) -> Message:
+        row = MessageTable(role=role, content=content, chat_id=chat_id)
+        self.session.add(row)
         self.session.commit()
-        self.session.refresh(new_message)
-
-        return new_message
-
+        self.session.refresh(row)
+        return self._to_entity(row)
