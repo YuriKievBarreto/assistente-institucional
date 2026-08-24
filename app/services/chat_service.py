@@ -1,6 +1,6 @@
 from app.chatbot.engine import ChatEngine
-from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, ChatCreate
-from app.models.message_model import Message, MessageCreate
+from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, ChatCreate, ChatResponse
+from app.models.message_model import Message, MessageCreate, MessageResponse
 import uuid
 from app.models.user_model import User
 from typing import AsyncGenerator
@@ -91,13 +91,22 @@ class ChatService:
         return self.message_repo.create_message(message_data, chat_id)
 
 
-    def find_chats_by_user_id(self, user_id: uuid.UUID) -> list[Chat]:
+    def find_chats_by_user_id(self, user_id: uuid.UUID) -> list[ChatResponse]:
         chats = self.chat_repo.find_chats_by_user_id(user_id)
-        return chats
-
-
-
-
-
-
-
+        return [
+            ChatResponse(
+                id=chat.id,
+                title=chat.title,
+                created_at=chat.created_at,
+                messages=[
+                    MessageResponse(
+                        id=msg.id,
+                        role=msg.role,
+                        content=msg.content,
+                        created_at=msg.created_at
+                    )
+                    for msg in chat.messages
+                ]
+            )
+            for chat in chats
+        ]
