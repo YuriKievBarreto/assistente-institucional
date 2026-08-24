@@ -5,6 +5,8 @@ from app.chatbot.services.query_expander import QueryExpander
 from app.chatbot.services.reranker import Reranker
 from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
 
+from concurrent.futures import ThreadPoolExecutor
+
 class RAGRetriever:
     def __init__(
         self, 
@@ -33,9 +35,11 @@ class RAGRetriever:
     def multi_query_retrieve(self, query: str) -> list[Document]:
         queries = self.query_expander.expand(query, k=3)
         all_docs = []
-        for q in queries:
-            docs = self.retrieve(q)
-            all_docs.extend(docs)
+
+        with ThreadPoolExecutor(max_workers=len(queries)) as executor:
+            results = list(executor.map(self.retrieve, queries))
+            for docs in results:
+                all_docs.extend(docs)
 
         unique_docs = self.deduplicate(all_docs)
         top_5_docs = self.reranker.rerank(query, unique_docs, top_k=5)
