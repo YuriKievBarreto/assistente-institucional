@@ -8,7 +8,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 def get_bedrock_llm(config: RAGConfig, model: str | None = None) -> ChatBedrockConverse:
-    model_id = model if model else "claude_haiku_4-5"
+    model_id = model if model else "amazon_nova_lite"
     if model_id not in config.bedrock_models:
         raise KeyError(f"Modelo '{model_id}' não encontrado em RAGConfig.bedrock_models. Opções: {list(config.bedrock_models.keys())}")
     
@@ -22,7 +22,7 @@ def get_bedrock_llm(config: RAGConfig, model: str | None = None) -> ChatBedrockC
     )
 
 def get_groq_llm(config: RAGConfig, model: str | None = None) -> ChatGroq:
-    model_id = model if model else "llama_instant"
+    model_id = model if model else "llama_versatille"
     if model_id not in config.groq_models:
         raise KeyError(f"Modelo '{model_id}' não encontrado em RAGConfig.groq_models. Opções: {list(config.groq_models.keys())}")
         

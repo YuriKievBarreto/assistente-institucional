@@ -3,7 +3,7 @@ from sqlmodel import Session
 from app.models.user_model import RegisterResponse, TokenResponse, UserCreate, LoginRequest, UserResponse, User
 from app.database.postgres import get_session
 from app.dependencies import get_current_user
-from app.services import auth_service
+from app.services.auth_service import AuthService
 
 router = APIRouter()
 

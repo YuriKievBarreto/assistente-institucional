@@ -7,7 +7,7 @@ from app.database.postgres import get_session
 from app.repositories.chat_repository import find_chats_by_user_id
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session
-from app.services import chat_service
+from app.services.chat_service import ChatService
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ async def chat(req: ChatInputRequest, engine: ChatEngine = Depends(get_engine),
     
 
     return StreamingResponse(
-        chat_service.chat_and_save(engine, req, session, current_user),
+        ChatService.chat_and_save(engine, req, session, current_user),
         media_type="text/plain",
     )
 
@@ -31,7 +31,7 @@ async def migrate(req: ChatMigrateRequest,
    
 
    try:
-        chat_service.migrate_chats(session, req, user_id=current_user.id)
+        ChatService.migrate_chats(session, req, user_id=current_user.id)
    except Exception:
        session.rollback()
        raise HTTPException(
@@ -44,5 +44,5 @@ async def migrate(req: ChatMigrateRequest,
 async def get_all_chats(session: Session = Depends(get_session),
                         current_user: User = Depends(get_current_user)) -> list[ChatResponse]:
     
-    return find_chats_by_user_id(session, current_user.id)
+    return ChatService.find_chats_by_user_id(session=session, user_id=current_user.id)
     

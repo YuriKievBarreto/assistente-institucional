@@ -3,9 +3,9 @@ from app.database.qdrant_vector_store import embeddings
 from langchain_core.documents import Document
 from fastembed import SparseTextEmbedding
 from qdrant_client.models import SparseVector, Prefetch, FusionQuery, Fusion
-from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
+from app.repositories.interfaces.vector_repository_interface import IVectorRepository
 
-class QdrantRepository(VectorRepositoryInterface):
+class QdrantRepository(IVectorRepository):
     def __init__(self, qdrant_client: QdrantClient, collection_name: str = "ifpb"):
           self.qdrant_client = qdrant_client
           self.collection_name = collection_name

@@ -12,7 +12,7 @@ class Reranker:
     """
     def __init__(self, use_remote: bool = True, remote_url: str = None):
         self.use_remote = use_remote
-        self.remote_url = remote_url or "https://qld-familiar-expectations-psp.trycloudflare.com"
+        self.remote_url = remote_url or " https://omissions-arbitration-particle-invite.trycloudflare.com"
         self._local_model = None
 
     @property
