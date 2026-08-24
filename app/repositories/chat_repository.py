@@ -26,8 +26,6 @@ def find_chats_by_user_id(session: Session, user_id: uuid.UUID) -> list[Chat]:
     )
 
     chats = list(session.exec(query).all())
-    print(chats)
-
     return chats
 
 def find_chat_by_id(session: Session, chat_id: uuid.UUID) -> Chat | None:

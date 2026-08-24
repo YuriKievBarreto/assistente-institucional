@@ -3,7 +3,6 @@ from app.database.qdrant_vector_store import embeddings
 from langchain_core.documents import Document
 from fastembed import SparseTextEmbedding
 from qdrant_client.models import SparseVector, Prefetch, FusionQuery, Fusion
-from qdrant_client import QdrantClient
 from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
 
 class QdrantRepository(VectorRepositoryInterface):
