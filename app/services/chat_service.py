@@ -24,27 +24,22 @@ class ChatService:
         answer = await chat_engine.stream_chat(req.query)
         return answer
 
-    def migrate_chats(self, session: Session, migrate_data: ChatMigrateRequest, user_id: uuid.UUID) -> None:
-        messages_to_insert = []
+    def migrate_chats(self, migrate_data: ChatMigrateRequest, user_id: uuid.UUID) -> None:
+        try:
+            for chat_data in migrate_data.chats_data:
+                new_chat = ChatCreate(title=chat_data.title)
+                chat = self.chat_repo.create_chat(new_chat, user_id)
 
-        for chat_data in migrate_data.chats_data:
-            chat = Chat(title=chat_data.title, user_id=user_id)
-            session.add(chat)
-            session.flush()
+                for msg in chat_data.history:
+                    message_data = MessageCreate(role=msg.role, content=msg.content)
+                    self.message_repo.create_message(message_data, chat.id)
+        except Exception as e:
+            self.chat_repo.rollback()
+            import logging
+            logging.getLogger(__name__).error(f"Erro ao migrar chats no banco: {e}")
+            raise
 
-            for msg in chat_data.history:
-                messages_to_insert.append(Message(
-                    chat_id=chat.id,
-                    role=msg.role,
-                    content=msg.content
-                ))
-
-        session.add_all(messages_to_insert)
-        session.commit()
-        
-
-
-    async def chat_and_save(self, engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None) -> AsyncGenerator[str, None]:
+    async def chat_and_save(self, engine: ChatEngine, req: ChatInputRequest, current_user: User | None) -> AsyncGenerator[str, None]:
         engine.memory.load_history(req.history)
         full_response = ""
 
@@ -54,7 +49,6 @@ class ChatService:
 
         if current_user:
             self.save_dialogue(
-                session=session,
                 user_id=current_user.id,
                 chat_id=req.session_id,
                 title=req.title,
@@ -64,13 +58,12 @@ class ChatService:
 
 
     def save_dialogue(
-    self,
-    session: Session,
-    user_id: uuid.UUID,
-    chat_id: str,
-    title: str,
-    human_message: str,
-    ai_response: str
+        self,
+        user_id: uuid.UUID,
+        chat_id: str,
+        title: str,
+        human_message: str,
+        ai_response: str
     ) -> None:
         try:
             try:
@@ -78,26 +71,28 @@ class ChatService:
             except (ValueError, TypeError):
                 valid_chat_id = None
 
-            chat = self.chat_repo.find_chat_by_id(session, valid_chat_id) if valid_chat_id else None
+            chat = self.chat_repo.find_chat_by_id(valid_chat_id) if valid_chat_id else None
             
             if not chat:
                 new_chat = ChatCreate(title=title)
-                chat = self.chat_repo.create_chat(session, new_chat, user_id)
+                chat = self.chat_repo.create_chat(new_chat, user_id)
 
-            self.save_message(session, MessageCreate(role="human", content=human_message), chat.id)
-            self.save_message(session, MessageCreate(role="ai", content=ai_response), chat.id)
+            self.save_message(MessageCreate(role="human", content=human_message), chat.id)
+            self.save_message(MessageCreate(role="ai", content=ai_response), chat.id)
         except Exception as e:
-            session.rollback()
+            self.chat_repo.rollback()
             import logging
             logging.getLogger(__name__).error(f"Erro ao salvar diálogo no banco: {e}")
 
+
+
     
-    def save_message(self, session: Session, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
-        return self.message_repo.create_message(session, message_data, chat_id)
+    def save_message(self, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
+        return self.message_repo.create_message(message_data, chat_id)
 
 
-    def find_chats_by_user_id(self, session: Session, user_id: uuid.UUID) -> list[Chat]:
-        chats = self.chat_repo.find_chats_by_user_id(session, user_id)
+    def find_chats_by_user_id(self, user_id: uuid.UUID) -> list[Chat]:
+        chats = self.chat_repo.find_chats_by_user_id(user_id)
         return chats
 
 
