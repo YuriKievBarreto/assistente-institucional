@@ -13,7 +13,6 @@ from app.chatbot.memory import MemoryManager
 from app.repositories import user_repository
 from app.repositories.qdrant_repository import QdrantRepository
 from sqlmodel import Session
-from app.database.qdrant_vector_store import vector_store
 from app.chatbot.models import RAGConfig
 from langchain_aws import ChatBedrock
 from app.chatbot.llm import get_groq_llm, get_bedrock_llm
