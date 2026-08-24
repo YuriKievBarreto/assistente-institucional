@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status, Depends
-from app.models.user_model import RegisterResponse, TokenResponse, UserCreate, LoginRequest, UserResponse, User
+from app.models.schemas.user_schemas import RegisterResponse, TokenResponse, UserCreate, LoginRequest, UserResponse
+from app.models.domain.user import User
 from app.dependencies import get_current_user, get_auth_service
 from app.services.auth_service import AuthService
 
@@ -23,5 +24,3 @@ async def get_me(current_user: User = Depends(get_current_user)):
         avatar_url=current_user.avatar_url,
         id=current_user.id
     )
-
-

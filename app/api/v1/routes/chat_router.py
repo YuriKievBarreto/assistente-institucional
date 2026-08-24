@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from app.models.user_model import User
-from app.models.chat_model import ChatMigrateRequest, ChatInputRequest, ChatResponse
+from app.models.domain.user import User
+from app.models.schemas.chat_schemas import ChatMigrateRequest, ChatInputRequest, ChatResponse
 from app.chatbot.engine import ChatEngine
 from app.dependencies import get_engine, get_current_user, get_current_user_optional, get_chat_service
 from fastapi.responses import StreamingResponse
@@ -43,5 +43,3 @@ async def get_all_chats(
     chat_service: ChatService = Depends(get_chat_service)
 ) -> list[ChatResponse]:
     return chat_service.find_chats_by_user_id(user_id=current_user.id)
-
-    

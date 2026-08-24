@@ -1,6 +1,8 @@
 from fastapi import HTTPException, status
-from app.models.user_model import UserCreate, RegisterResponse, TokenResponse, UserResponse, LoginRequest, User
-from app.models.user_accounts_model import UserAccountCreate
+from app.models.domain.user import User
+from app.models.schemas.user_schemas import (
+    UserCreate, LoginRequest, UserResponse, RegisterResponse, TokenResponse,
+)
 from app.repositories.interfaces.user_account_repository_interface import IUserAccountRepository
 from app.repositories.interfaces.user_repository_interface import IUserRepository
 from app.core.security import hash_password, generate_token, verify_password
@@ -19,15 +21,12 @@ class AuthService:
                 detail="Email já cadastrado"
             )
 
-        new_user_account_data = UserAccountCreate(
-            provider="local",
-            provider_id=user_data.email,
-            password_hash=hash_password(user_data.password)
-        )
-
         try:
             new_user = self.user_repo.create_user(user_data)
-            self.user_account_repo.create_user_account(new_user.id, new_user_account_data)
+            self.user_account_repo.create_user_account(
+                user_id=new_user.id,
+                password_hash=hash_password(user_data.password)
+            )
         except Exception:
             self.user_repo.rollback()
             raise HTTPException(
@@ -50,7 +49,7 @@ class AuthService:
         )
 
     def login(self, user_data: LoginRequest) -> TokenResponse:
-        db_user: User = self.user_repo.get_user_by_email(user_data.email)
+        db_user = self.user_repo.get_user_by_email(user_data.email)
         if not db_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,15 +82,3 @@ class AuthService:
             access_token=token,
             token_type="bearer"
         )
-
-
-
-
-
-
-    
-
-
-    
-    
-

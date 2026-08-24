@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
 from app.core.security import decode_token
-from app.models.user_model import User
+from app.models.domain.user import User
 from app.repositories.interfaces.user_repository_interface import IUserRepository
 from app.dependencies.repository_deps import get_user_repository
 

@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
 from app.chatbot.services.query_expander import QueryExpander
 from app.chatbot.services.reranker import Reranker
-from app.repositories.interfaces.vector_repository_interface import VectorRepositoryInterface
+from app.repositories.interfaces.vector_repository_interface import IVectorRepository
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -12,7 +12,7 @@ class RAGRetriever:
         self, 
         config: RAGConfig, 
         llm: BaseChatModel, 
-        vector_repo: VectorRepositoryInterface, 
+        vector_repo: IVectorRepository, 
         query_expander: QueryExpander,
         reranker: Reranker = None
     ):

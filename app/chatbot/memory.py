@@ -1,5 +1,5 @@
 from langchain_core.chat_history import InMemoryChatMessageHistory
-from app.models.chat_model import ChatMessageHistory
+from app.models.schemas.chat_schemas import ChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 
 class MemoryManager:

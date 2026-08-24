@@ -7,7 +7,7 @@ from app.chatbot.models import RAGConfig
 from app.chatbot.rag_logic import RAGRetriever
 from app.chatbot.services.query_expander import QueryExpander
 from app.chatbot.llm import get_bedrock_llm
-from app.models.chat_model import ChatInputRequest
+from app.models.schemas.chat_schemas import ChatInputRequest
 from app.dependencies.repository_deps import get_vector_repository
 
 
