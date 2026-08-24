@@ -1,5 +1,5 @@
 from app.chatbot.engine import ChatEngine
-from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, ChatCreate, Dialogue, AIresponse
+from app.models.chat_model import ChatInputRequest, ChatMigrateRequest, Chat, ChatCreate
 from app.models.message_model import Message, MessageCreate
 import uuid
 from app.models.user_model import User
@@ -32,8 +32,7 @@ def migrate_chats(session: Session, migrate_data: ChatMigrateRequest, user_id: u
     session.commit()
 
 
-# chat_service.py
-async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None) -> None | AsyncGenerator:
+async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Session, current_user: User | None) -> AsyncGenerator[str, None]:
     engine.memory.load_history(req.history)
     full_response = ""
 
@@ -42,34 +41,35 @@ async def chat_and_save(engine: ChatEngine, req: ChatInputRequest, session: Sess
         yield chunk
 
     if current_user:
-        dialogue_data = Dialogue(
-            title=req.title,
-            human_message=req.query,
-            AI_response=full_response,
+        save_dialogue(
+            session=session,
             user_id=current_user.id,
             chat_id=req.session_id,
+            title=req.title,
+            human_message=req.query,
+            ai_response=full_response
         )
-        save_dialogue(session, dialogue_data)
 
 
-def save_dialogue(session: Session, dialogue_data: Dialogue) -> None:
-    print("iniciando salvamento de dialogo")
-    chat = chat_repository.find_chat_by_id(session, uuid.UUID(dialogue_data.chat_id))
-    print("há chat? ", chat)
+def save_dialogue(
+    session: Session,
+    user_id: uuid.UUID,
+    chat_id: str,
+    title: str,
+    human_message: str,
+    ai_response: str
+) -> None:
+    chat = chat_repository.find_chat_by_id(session, uuid.UUID(chat_id))
     
     if not chat:
-        print("chat nao encontrado no banco de dados. criando....")
-        new_chat = ChatCreate(title=dialogue_data.title)
-        chat = chat_repository.create_chat(session, new_chat, dialogue_data.user_id)
-        print("chat criado com sucesso! ",chat)
+        new_chat = ChatCreate(title=title)
+        chat = chat_repository.create_chat(session, new_chat, user_id)
+
+    save_message(session, MessageCreate(role="human", content=human_message), chat.id)
+    save_message(session, MessageCreate(role="ai", content=ai_response), chat.id)
 
 
-    print("print salvando mesanges")
-    save_message(session, MessageCreate(role="human", content=dialogue_data.human_message), chat.id)
-    save_message(session, MessageCreate(role="ai", content=dialogue_data.AI_response), chat.id)
-
-
-def save_message(session: Session, message_data: MessageCreate, chat_id) -> Message:
+def save_message(session: Session, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
     return message_repository.create_message(session, message_data, chat_id)
 
 

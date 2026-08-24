@@ -1,6 +1,6 @@
 from sqlmodel import Session
 from fastapi import HTTPException, status
-from app.models.user_model import UserCreate, RegisterResponse, UserResponse, LoginRequest, User
+from app.models.user_model import UserCreate, RegisterResponse, TokenResponse, UserResponse, LoginRequest, User
 from app.models.user_accounts_model import UserAccountCreate
 from app.repositories import user_repository, user_account_repository
 from app.core.security import hash_password, generate_token, verify_password
@@ -46,7 +46,7 @@ def register(session: Session, user_data: UserCreate) -> RegisterResponse:
     )
 
 
-def login(session: Session, user_data: LoginRequest) -> RegisterResponse:
+def login(session: Session, user_data: LoginRequest) -> TokenResponse:
     db_user: User = user_repository.get_user_by_email(session, user_data.email)
     if not db_user:
         raise HTTPException(
@@ -69,7 +69,7 @@ def login(session: Session, user_data: LoginRequest) -> RegisterResponse:
     
     token = generate_token(str(db_user.id))
 
-    return RegisterResponse(
+    return TokenResponse(
         user=UserResponse(
             id=db_user.id,
             name=db_user.name,
