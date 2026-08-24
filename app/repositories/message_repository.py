@@ -6,15 +6,19 @@ from app.repositories.interfaces.message_repository_interface import IMessageRep
 
 
 class MessageRepository(IMessageRepository):
-    def create_message(self, session: Session, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create_message(self, message_data: MessageCreate, chat_id: uuid.UUID) -> Message:
         new_message = Message(
            role=message_data.role,
            content=message_data.content,
            chat_id=chat_id
         )
 
-        session.add(new_message)
-        session.commit()
-        session.refresh(new_message)
+        self.session.add(new_message)
+        self.session.commit()
+        self.session.refresh(new_message)
 
-        return new_message
+        return new_message
+
