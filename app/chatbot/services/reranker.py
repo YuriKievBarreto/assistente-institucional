@@ -1,7 +1,8 @@
-import requests
 import logging
 from sentence_transformers import CrossEncoder
 from langchain_core.documents import Document
+import boto3
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -10,9 +11,8 @@ class Reranker:
     Serviço responsável por re-ordenar (rerank) documentos com base na relevância para a pergunta.
     Suporta estratégia remota via HTTP e estratégia local via CrossEncoder com carregamento sob demanda.
     """
-    def __init__(self, use_remote: bool = True, remote_url: str = None):
+    def __init__(self, use_remote: bool = True):
         self.use_remote = use_remote
-        self.remote_url = remote_url or " https://omissions-arbitration-particle-invite.trycloudflare.com"
         self._local_model = None
 
     @property
@@ -35,25 +35,50 @@ class Reranker:
         return self.local_rerank(query, docs, top_k)
 
     def remote_rerank(self, query: str, docs: list[Document], top_k: int = 5) -> list[Document]:
-        """Re-ordena os documentos fazendo uma requisição ao servidor de rerank remoto."""
-        try:
-            response = requests.post(
-                f"{self.remote_url}/rerank",
-                json={
-                    "query": query,
-                    "docs": [doc.page_content for doc in docs],
-                },
-                timeout=30,
-            )
-            response.raise_for_status()
-            scores = response.json()["scores"]
+        client = boto3.client("bedrock-agent-runtime", region_name="us-east-1", aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,)
 
-            ranked = sorted(zip(docs, scores), key=lambda pair: pair[1], reverse=True)
-            return [doc for doc, _ in ranked[:top_k]]
+
+
+        response = client.rerank(
+            queries=[
+                {
+                    "type": "TEXT",
+                    "textQuery": {
+                        "text": query
+                    }
+                }
+            ],
+
+            sources=[
+                {
+                    "type": "INLINE",
+                    "inlineDocumentSource": {
+                        "type": "TEXT",
+                        "textDocument": {
+                            "text": doc.page_content
+                        }
+                    }
+                } for doc in docs
+            ],
+
+            rerankingConfiguration={
+                "type": "BEDROCK_RERANKING_MODEL",
+                "bedrockRerankingConfiguration": {
+                    "modelConfiguration": {
+                        "modelArn": (
+                            "arn:aws:bedrock:us-east-1::"
+                            "foundation-model/cohere.rerank-v3-5:0"
+                        )
+                    },
+                    "numberOfResults": top_k
+                }
+            }
+
             
-        except Exception as e:
-            logger.warning(f"Falha ao chamar reranker remoto ({e}). Aplicando fallback gracioso.")
-            return docs[:top_k]
+        )        
+
+        return [docs[result["index"]] for result in response["results"]]
 
     def local_rerank(self, query: str, docs: list[Document], top_k: int = 5) -> list[Document]:
         """Re-ordena os documentos localmente usando o CrossEncoder."""
