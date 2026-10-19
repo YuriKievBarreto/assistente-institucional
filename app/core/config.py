@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pathlib import Path
 
 class Settings(BaseSettings):
     # App
@@ -27,10 +28,46 @@ class Settings(BaseSettings):
     HUGGINGFACE_EMBEDDING_MODEL_ID: Optional[str] = None
     BEDROCK_EMBEDDING_MODEL_ID: Optional[str] = None
 
+    #DataLake
+    ROOT_DIR: Path = Path(__file__).resolve().parents[2]
+    LOCAL_DATALAKE_DIR: str
+    
+
+
+    @property
+    def DATALAKE_DIR(self) -> Path:
+        path = Path(self.LOCAL_DATALAKE_DIR)
+
+        if path.is_absolute():
+            return path
+
+        return self.ROOT_DIR / path
+
+    # Crawlers
+    LINK_CURSOS_GRADUACAO: str = "https://estudante.ifpb.edu.br/cursos/?cidade=11&nivel_formacao=GRADUACAO"
+    LINK_CURSOS_TECNICOS: str = "https://estudante.ifpb.edu.br/cursos/?cidade=11&modalidade=&nome=&formacao=&nivel_formacao=TECNICO&turno=&forma_acesso="
+    LINK_CURSOS_POS_GRADUACAO: str = "https://estudante.ifpb.edu.br/cursos/?cidade=11&modalidade=&nome=&formacao=&nivel_formacao=POSGRADUACAO&turno=&forma_acesso="
+
+    BASE_CRAWLERS: str = "https://www.ifpb.edu.br"
+
+    RAIZ_CRAWLER_EDITAIS: str = "/campus/cajazeiras/editais"
+    RAIZ_CRAWLER_RESOLUCOES: str = "/campus/cajazeiras/conselho-diretor/resolucoes"
+    RAIZ_CRAWLER_PAGINAS: str = "/campus/cajazeiras"
+    RAIZ_CRAWLER_REGULAMENTOS: str = "/campus/cajazeiras/ensino/regulamentos/documentos"
+
+    ANO_MINIMO: int = 2026
+    ANO_MINIMO_NOTICIAS: int = 2026
+    ANO_MINIMO_REGULAMENTOS: int = 2010
+    ANO_MINIMO_RESOLUCOES: int = 2025
+
+    @property
+    def links_hubs_cursos(self) -> list[str]:
+        return [self.LINK_CURSOS_GRADUACAO, self.LINK_CURSOS_TECNICOS, self.LINK_CURSOS_POS_GRADUACAO]
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )
-
 settings = Settings()
+
