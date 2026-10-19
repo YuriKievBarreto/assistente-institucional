@@ -5,6 +5,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from rag.chunking.chunking import RAGChunking
+from pathlib import Path
 from rag.indexing.embbedings import embeddings
 import uuid
 from qdrant_client import QdrantClient
@@ -66,7 +67,7 @@ def enviar_batch_parents(client: QdrantClient, parents_collection_name: str, par
     print(f"  -> {len(points)} parents enviados para '{parents_collection_name}'.")
 
 
-def ingest_pipeline(DATALAKE_DIR: str):
+def ingest_pipeline(DATALAKE_DIR: str | Path):
     chunker = RAGChunking(datalake_directory=DATALAKE_DIR)
 
     batch_size = 64

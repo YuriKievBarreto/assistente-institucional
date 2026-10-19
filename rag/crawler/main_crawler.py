@@ -1,92 +1,22 @@
-from rag.crawler.crawler_editais import baixar_editais
-from rag.crawler.crawler_resolucoes import IFPBCrawlerUnificado
-from rag.crawler.crawler_info_geral import baixar_da_web
-
-
+from rag.crawler.crawler_cursos import executar_crawler_cursos
+from rag.crawler.crawler_documentos import executar_crawler
+from rag.crawler.crawler_paginas import executar_crawler_paginas
+from dotenv import load_dotenv
 import logging
-from dotenv import load_dotenv
-import os
-from dotenv import load_dotenv
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-data_dir = os.getenv("DATALAKE_DIR")
-
-WEB_PAGE_HUBS = {
-        "institucional": "https://www.ifpb.edu.br/campus/cajazeiras/institucional",
-        "assistencia-estudantil":"https://www.ifpb.edu.br/campus/cajazeiras/assistencia-estudantil",
-        "ensino": "https://www.ifpb.edu.br/campus/cajazeiras/ensino",
-        "pesquisa": "https://www.ifpb.edu.br/campus/cajazeiras/pesquisa",
-        "extensao": "https://www.ifpb.edu.br/campus/cajazeiras/extensao",
+from app.core.config import settings
 
 
-        #"conselho-diretor":"https://www.ifpb.edu.br/campus/cajazeiras/conselho-diretor",
-        #"acesso-a-informacao": "https://www.ifpb.edu.br/campus/cajazeiras/acesso-a-informacao",
-
-
-        #"pronatec": "https://www.ifpb.edu.br/campus/cajazeiras/pronatec",
-        #"assuntos": "https://www.ifpb.edu.br/campus/cajazeiras/assuntos",
-        #"administracao": "https://www.ifpb.edu.br/campus/cajazeiras/administracao",
-        
-    }
-
-DIRETORIO_WEB_PAGES = f"{data_dir}/paginas_web"
-
-CONFIG_EDITAIS = {
-
-    "ensino": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/ensino/editais-2026"
-        },
-        "caminho": f"{data_dir}/editais/ensino"
-    },
-
-    "assistencia_estudantil": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/assistencia-estudantil/2026"
-        },
-        "caminho": f"{data_dir}/editais/assistencia_estudantil"
-    },
-
-    "direcao_geral": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/direcao-geral/2026"
-        },
-        "caminho": f"{data_dir}/editais/direcao_geral"
-    },
-
-    "extensao": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/extensao/2026"
-        },
-        "caminho": f"{data_dir}/editais/extensao"
-    },
-
-    "inovacao": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-inovacao"
-        },
-        "caminho": f"{data_dir}/editais/invacao"
-    },
-    
-
-    "pesquisa": {
-        "urls": {
-            2026: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2026",
-            2024: "https://www.ifpb.edu.br/campus/cajazeiras/editais/editais-de-pesquisa/2024"
-        },
-        "caminho": f"{data_dir}/editais/pesquisa"
-    },
-
-}
-
+links_hubs_cursos = settings.links_hubs_cursos
 
 
 def execute_all_crawlers():
     load_dotenv()
     tarefas = [
-        ("Web Pages", lambda: baixar_da_web(WEB_PAGE_HUBS, DIRETORIO_WEB_PAGES)),
-        ("Reitoria", lambda: IFPBCrawlerUnificado().executar()),
+        ("Cursos", lambda: [executar_crawler_cursos(curso) for curso in links_hubs_cursos]),
+        ("Editais", lambda: executar_crawler(raiz=settings.RAIZ_CRAWLER_EDITAIS, base=settings.BASE_CRAWLERS, ano_minimo=settings.ANO_MINIMO, tipo_doc="editais")),
+        ("Resolucoes", lambda: executar_crawler(raiz=settings.RAIZ_CRAWLER_RESOLUCOES, base=settings.BASE_CRAWLERS, ano_minimo=settings.ANO_MINIMO_RESOLUCOES, tipo_doc="resolucoes")),
+        ("Regulamentos", lambda: executar_crawler(raiz=settings.RAIZ_CRAWLER_REGULAMENTOS, base=settings.BASE_CRAWLERS, ano_minimo=settings.ANO_MINIMO_REGULAMENTOS, tipo_doc="regulamentos")),
+        ("Paginas", lambda: executar_crawler_paginas(raiz=settings.RAIZ_CRAWLER_PAGINAS, base=settings.BASE_CRAWLERS, ano_minimo_noticias=settings.ANO_MINIMO_NOTICIAS))
     ]
 
     for nome, tarefa in tarefas:
@@ -96,17 +26,5 @@ def execute_all_crawlers():
         except Exception:
             logging.error(f"Falha fatal em {nome}", exc_info=True)
 
-   
-    for nome_categoria, conf in CONFIG_EDITAIS.items():
-        try:
-            logging.info(f"Processando categoria: {nome_categoria}")
-            baixar_editais(conf["urls"], conf["caminho"])
-        except Exception:
-            logging.error(f"Falha na categoria {nome_categoria}", exc_info=True)
-
-
-    
-
-
-
-
+if __name__ == "__main__":
+    execute_all_crawlers()
