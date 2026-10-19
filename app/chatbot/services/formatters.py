@@ -43,4 +43,6 @@ class DocumentFormatter:
             meta_str = "\n".join(meta_lines)
             formatted.append(f"Metadata:\n{meta_str}\n\nContext:\n{content}")
 
+       
+
         return "\n\n---\n\n".join(formatted)
